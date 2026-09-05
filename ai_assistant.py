@@ -2,18 +2,24 @@
 Smart AI Assistant.
 
 This module answers user questions about their own spending history. It runs
-entirely on-device using the user's transaction data plus a rule-based intent
-matcher, so the app works with zero external API keys out of the box.
+entirely on-device using a rule-based intent matcher by default.
 
-To connect the ngrok AI Gateway / Gemini 2.0 ("gpt-5.6-luna") backend
-described in the project abstract, add your endpoint + key to config and
-replace `generate_reply()`'s fallback branch with an HTTP call that passes
-`build_context_summary(user)` as system context alongside the user's message.
+If a GEMINI_API_KEY environment variable is provided, it uses the Google Gemini
+API for more natural and personalized spending insights.
 """
+import os
 from collections import defaultdict
 from datetime import date, timedelta
 
 from models import Transaction
+
+# Optional: Google GenAI integration
+try:
+    from google import genai
+    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+    client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
+except ImportError:
+    client = None
 
 
 def build_context_summary(user) -> dict:
@@ -60,6 +66,33 @@ def generate_reply(user, message: str) -> str:
                 "Add a few expenses or scan a receipt, and I'll be able to give you "
                 "real insights on your spending.")
 
+    # If Gemini client is available, use it for a smarter response
+    if client:
+        try:
+            prompt = f"""
+            You are a helpful personal finance AI assistant for {user.first_name}.
+            User spending summary (last 30 days):
+            - Total Spent: ₹{ctx['expense_30d']:,.2f}
+            - Total Income: ₹{ctx['income_30d']:,.2f}
+            - Top Category: {ctx['top_category'][0] if ctx['top_category'] else 'N/A'} (₹{ctx['top_category'][1] if ctx['top_category'] else 0:,.2f})
+            - Prev 30d Spending: ₹{ctx['expense_prev_30d']:,.2f}
+            - Full Breakdown: {ctx['by_category']}
+
+            User message: "{message}"
+
+            Provide a concise, supportive, and data-driven response in 2-3 sentences. 
+            Use ₹ for currency. If they ask for tips, suggest specific ways to save in their top categories.
+            """
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
+            return response.text.strip()
+        except Exception as e:
+            # Fallback to rule-based if API fails
+            pass
+
+    # ---------- Rule-based Fallback ----------
     if any(k in msg for k in ["save", "saving", "tip", "reduce", "cut"]):
         if ctx["top_category"]:
             cat, amt = ctx["top_category"]

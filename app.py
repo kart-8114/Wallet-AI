@@ -24,7 +24,7 @@ CATEGORIES = ["Food", "Groceries", "Bills", "Transport", "Shopping",
 
 def create_app():
     flask_app = Flask(__name__)
-    flask_app.config["SECRET_KEY"] = os.environ.get("WALLET_AI_SECRET", "dev-secret-change-me")
+    flask_app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.environ.get("WALLET_AI_SECRET", "dev-secret-change-me")
     flask_app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'wallet_ai.db')}"
     flask_app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     flask_app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8MB uploads
@@ -58,7 +58,11 @@ def register_routes(flask_app):
 
     @flask_app.context_processor
     def inject_globals():
-        return {"current_user": current_user(), "categories": CATEGORIES}
+        return {
+            "current_user": current_user(),
+            "categories": CATEGORIES,
+            "GA_MEASUREMENT_ID": os.environ.get("GA_MEASUREMENT_ID")
+        }
 
     # ---------- Auth ----------
     @flask_app.route("/")
