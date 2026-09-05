@@ -460,12 +460,12 @@ def register_routes(flask_app):
         return jsonify({"reply": reply})
 
     # ---------- Export ----------
-    @app.route("/export")
+    @flask_app.route("/export")
     @login_required
     def export_page():
         return render_template("export.html")
 
-    @app.route("/export/csv")
+    @flask_app.route("/export/csv")
     @login_required
     def export_csv():
         user = current_user()
@@ -479,7 +479,7 @@ def register_routes(flask_app):
         return send_file(mem, mimetype="text/csv", as_attachment=True,
                           download_name=f"wallet_ai_export_{date.today().isoformat()}.csv")
 
-    @app.route("/export/xlsx")
+    @flask_app.route("/export/xlsx")
     @login_required
     def export_xlsx():
         import openpyxl
@@ -499,7 +499,7 @@ def register_routes(flask_app):
                           download_name=f"wallet_ai_export_{date.today().isoformat()}.xlsx")
 
     # ---------- Settings ----------
-    @app.route("/settings", methods=["GET", "POST"])
+    @flask_app.route("/settings", methods=["GET", "POST"])
     @login_required
     def settings():
         user = current_user()
