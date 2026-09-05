@@ -54,20 +54,20 @@ def current_user():
     return User.query.get(uid) if uid else None
 
 
-def register_routes(app):
+def register_routes(flask_app):
 
-    @app.context_processor
+    @flask_app.context_processor
     def inject_globals():
         return {"current_user": current_user(), "categories": CATEGORIES}
 
     # ---------- Auth ----------
-    @app.route("/")
+    @flask_app.route("/")
     def home():
         if "user_id" in session:
             return redirect(url_for("dashboard"))
         return redirect(url_for("login"))
 
-    @app.route("/register", methods=["GET", "POST"])
+    @flask_app.route("/register", methods=["GET", "POST"])
     def register():
         if request.method == "POST":
             first_name = request.form.get("first_name", "").strip()
@@ -114,7 +114,7 @@ def register_routes(app):
             return redirect(url_for("verify_otp"))
         return render_template("register.html")
 
-    @app.route("/verify-otp", methods=["GET", "POST"])
+    @flask_app.route("/verify-otp", methods=["GET", "POST"])
     def verify_otp():
         uid = session.get("pending_otp_user")
         if not uid:
@@ -131,7 +131,7 @@ def register_routes(app):
             flash("Incorrect OTP. Please try again.", "danger")
         return render_template("verify_otp.html", user=user)
 
-    @app.route("/login", methods=["GET", "POST"])
+    @flask_app.route("/login", methods=["GET", "POST"])
     def login():
         if request.method == "POST":
             email = request.form.get("email", "").strip().lower()
@@ -149,13 +149,13 @@ def register_routes(app):
             return redirect(url_for("dashboard"))
         return render_template("login.html")
 
-    @app.route("/logout")
+    @flask_app.route("/logout")
     def logout():
         session.clear()
         flash("Logged out successfully.", "info")
         return redirect(url_for("login"))
 
-    @app.route("/mpin", methods=["GET", "POST"])
+    @flask_app.route("/mpin", methods=["GET", "POST"])
     @login_required
     def setup_mpin():
         user = current_user()
@@ -173,7 +173,7 @@ def register_routes(app):
                 return redirect(url_for("dashboard"))
         return render_template("mpin.html")
 
-    @app.route("/mpin-login", methods=["GET", "POST"])
+    @flask_app.route("/mpin-login", methods=["GET", "POST"])
     def mpin_login():
         if request.method == "POST":
             email = request.form.get("email", "").strip().lower()
@@ -187,7 +187,7 @@ def register_routes(app):
         return render_template("mpin_login.html")
 
     # ---------- Dashboard ----------
-    @app.route("/dashboard")
+    @flask_app.route("/dashboard")
     @login_required
     def dashboard():
         user = current_user()
@@ -229,14 +229,14 @@ def register_routes(app):
         )
 
     # ---------- Transactions ----------
-    @app.route("/transactions")
+    @flask_app.route("/transactions")
     @login_required
     def transactions():
         user = current_user()
         txns = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
         return render_template("transactions.html", txns=txns)
 
-    @app.route("/add-expense", methods=["GET", "POST"])
+    @flask_app.route("/add-expense", methods=["GET", "POST"])
     @login_required
     def add_expense():
         user = current_user()
@@ -264,7 +264,7 @@ def register_routes(app):
             return redirect(url_for("transactions"))
         return render_template("add_expense.html", today=date.today().isoformat())
 
-    @app.route("/transactions/<int:txn_id>/delete", methods=["POST"])
+    @flask_app.route("/transactions/<int:txn_id>/delete", methods=["POST"])
     @login_required
     def delete_transaction(txn_id):
         user = current_user()
@@ -275,7 +275,7 @@ def register_routes(app):
         return redirect(url_for("transactions"))
 
     # ---------- OCR Receipt Scanner ----------
-    @app.route("/scan-receipt", methods=["GET", "POST"])
+    @flask_app.route("/scan-receipt", methods=["GET", "POST"])
     @login_required
     def scan_receipt():
         result = None
@@ -290,7 +290,7 @@ def register_routes(app):
             result = extract_receipt_fields(path)
         return render_template("scan_receipt.html", result=result, today=date.today().isoformat())
 
-    @app.route("/scan-receipt/confirm", methods=["POST"])
+    @flask_app.route("/scan-receipt/confirm", methods=["POST"])
     @login_required
     def confirm_receipt():
         user = current_user()
@@ -317,7 +317,7 @@ def register_routes(app):
         return redirect(url_for("transactions"))
 
     # ---------- Analytics ----------
-    @app.route("/analytics")
+    @flask_app.route("/analytics")
     @login_required
     def analytics():
         user = current_user()
@@ -355,7 +355,7 @@ def register_routes(app):
         )
 
     # ---------- Budgets ----------
-    @app.route("/budgets", methods=["GET", "POST"])
+    @flask_app.route("/budgets", methods=["GET", "POST"])
     @login_required
     def budgets():
         user = current_user()
@@ -388,7 +388,7 @@ def register_routes(app):
             })
         return render_template("budgets.html", rows=rows)
 
-    @app.route("/budgets/<int:budget_id>/delete", methods=["POST"])
+    @flask_app.route("/budgets/<int:budget_id>/delete", methods=["POST"])
     @login_required
     def delete_budget(budget_id):
         user = current_user()
@@ -398,7 +398,7 @@ def register_routes(app):
         return redirect(url_for("budgets"))
 
     # ---------- Goals ----------
-    @app.route("/goals", methods=["GET", "POST"])
+    @flask_app.route("/goals", methods=["GET", "POST"])
     @login_required
     def goals():
         user = current_user()
@@ -421,7 +421,7 @@ def register_routes(app):
         rows = Goal.query.filter_by(user_id=user.id).all()
         return render_template("goals.html", goals=rows)
 
-    @app.route("/goals/<int:goal_id>/contribute", methods=["POST"])
+    @flask_app.route("/goals/<int:goal_id>/contribute", methods=["POST"])
     @login_required
     def contribute_goal(goal_id):
         user = current_user()
@@ -436,7 +436,7 @@ def register_routes(app):
         flash(f"Added ₹{amt:,.2f} to {g.title}.", "success")
         return redirect(url_for("goals"))
 
-    @app.route("/goals/<int:goal_id>/delete", methods=["POST"])
+    @flask_app.route("/goals/<int:goal_id>/delete", methods=["POST"])
     @login_required
     def delete_goal(goal_id):
         user = current_user()
@@ -446,12 +446,12 @@ def register_routes(app):
         return redirect(url_for("goals"))
 
     # ---------- AI Chat Assistant ----------
-    @app.route("/chat")
+    @flask_app.route("/chat")
     @login_required
     def chat():
         return render_template("chat.html")
 
-    @app.route("/api/chat", methods=["POST"])
+    @flask_app.route("/api/chat", methods=["POST"])
     @login_required
     def api_chat():
         user = current_user()
