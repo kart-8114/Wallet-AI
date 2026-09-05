@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Analytics · Wallet AI{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block content %}
+<div class="grid grid-3">
+  <div class="card">
+    <h3>Expense (30d)</h3>
+    <div class="big-num" style="color:var(--coral);">₹{{ "%.2f"|format(expense_total) }}</div>
+  </div>
+  <div class="card">
+    <h3>Income (30d)</h3>
+    <div class="big-num" style="color:var(--emerald);">₹{{ "%.2f"|format(income_total) }}</div>
+  </div>
+  <div class="card">
+    <h3>Net (30d)</h3>
+    <div class="big-num">₹{{ "%.2f"|format(income_total - expense_total) }}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:18px;">
+  <h2 style="margin-bottom:14px;">30-day spending trend</h2>
+  <canvas id="trendChart" height="90"></canvas>
+</div>
+
+<div class="grid grid-2" style="margin-top:18px;">
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Category breakdown</h2>
+    <canvas id="categoryChart"></canvas>
+  </div>
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Income vs. expense</h2>
+    <canvas id="incomeExpenseChart"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+const inkSoft = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim();
+const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+Chart.defaults.color = inkSoft;
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.borderColor = border;
+
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: {{ daily_labels|tojson }},
+    datasets: [{
+      label: 'Daily expense',
+      data: {{ daily_values|tojson }},
+      borderColor: '#1F7A5C',
+      backgroundColor: 'rgba(31,122,92,0.12)',
+      fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+});
+
+new Chart(document.getElementById('categoryChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ cat_labels|tojson }},
+    datasets: [{
+      data: {{ cat_values|tojson }},
+      backgroundColor: ['#1F7A5C','#E0A030','#C75B4A','#4E8FA6','#8B6FC9','#5C8A3F','#B0578D','#7A6A4E'],
+      borderWidth: 0
+    }]
+  },
+  options: { plugins: { legend: { position: 'bottom' } } }
+});
+
+new Chart(document.getElementById('incomeExpenseChart'), {
+  type: 'bar',
+  data: {
+    labels: ['This period'],
+    datasets: [
+      { label: 'Income', data: [{{ income_total }}], backgroundColor: '#1F7A5C', borderRadius: 6 },
+      { label: 'Expense', data: [{{ expense_total }}], backgroundColor: '#C75B4A', borderRadius: 6 }
+    ]
+  },
+  options: { plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block page_title %}Set up MPIN{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;">
+  <h3>Quick access</h3>
+  <h2 style="margin-bottom:14px;">Set your 4-digit MPIN</h2>
+  <p>Use this instead of your password for fast mobile sign-in.</p>
+  <form method="POST">
+    <label for="mpin">New MPIN</label>
+    <input type="password" id="mpin" name="mpin" maxlength="4" pattern="\d{4}" placeholder="••••" required>
+    <label for="confirm_mpin">Confirm MPIN</label>
+    <input type="password" id="confirm_mpin" name="confirm_mpin" maxlength="4" pattern="\d{4}" placeholder="••••" required>
+    <button type="submit" class="btn btn-primary btn-block">Save MPIN</button>
+  </form>
+</div>
+{% endblock %}

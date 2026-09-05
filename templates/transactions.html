@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Transactions · Wallet AI{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+{% block content %}
+<div class="section-head" style="margin-top:0;">
+  <h2>All transactions</h2>
+  <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-sm">+ Add expense</a>
+</div>
+<div class="card">
+  {% if txns %}
+  <table>
+    <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Type</th><th>Source</th><th style="text-align:right;">Amount</th><th></th></tr></thead>
+    <tbody>
+    {% for t in txns %}
+      <tr>
+        <td>{{ t.date.strftime('%d %b %Y') }}</td>
+        <td>{{ t.merchant or '—' }}</td>
+        <td>{{ t.category }}</td>
+        <td><span class="pill pill-{{ t.type }}">{{ t.type }}</span></td>
+        <td><span class="pill pill-source">{{ t.source }}</span></td>
+        <td style="text-align:right; font-weight:600;">₹{{ "%.2f"|format(t.amount) }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('delete_transaction', txn_id=t.id) }}" onsubmit="return confirm('Delete this transaction?');">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <span class="big-num">≡</span>
+    No transactions yet. <a href="{{ url_for('add_expense') }}" style="color:var(--emerald); font-weight:600;">Add one</a> or <a href="{{ url_for('scan_receipt') }}" style="color:var(--emerald); font-weight:600;">scan a receipt</a>.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

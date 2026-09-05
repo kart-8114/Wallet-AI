@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Verify OTP · Wallet AI{% endblock %}
+{% block auth_content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-text" style="color:var(--ink);">Wallet <strong style="color:var(--emerald);">AI</strong></span>
+    </div>
+    <h1 class="auth-title">Verify your email</h1>
+    <p class="auth-sub">Enter the 6-digit code sent to <strong>{{ user.email }}</strong>.</p>
+    <p class="helper-text" style="margin-top:0;">Demo mode: your code is <strong>{{ user.otp_code }}</strong> (an OTP would normally be emailed by the notification service).</p>
+    <form method="POST">
+      <label for="otp">6-digit OTP</label>
+      <input type="text" id="otp" name="otp" class="otp-code" maxlength="6" pattern="\d{6}" placeholder="000000" required autofocus>
+      <button type="submit" class="btn btn-primary btn-block">Verify</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

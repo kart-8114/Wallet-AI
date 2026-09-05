@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Scan Receipt · Wallet AI{% endblock %}
+{% block page_title %}Scan receipt{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-bottom:6px;">Upload a receipt</h2>
+    <p>Tesseract OCR reads the image and pulls out the merchant, date, and total automatically.</p>
+    <form method="POST" enctype="multipart/form-data" id="ocrForm">
+      <label class="dropzone" for="receipt" id="dropzoneLabel">
+        <span class="dropzone-icon">▤</span>
+        <span id="dropzoneText">Click to choose an image, or drag one here</span>
+        <input type="file" id="receipt" name="receipt" accept="image/*" style="display:none;">
+      </label>
+      <div style="height:16px;"></div>
+      <button type="submit" class="btn btn-primary btn-block">Scan receipt</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:6px;">Extracted details</h2>
+    {% if result %}
+      {% if result.ok %}
+        <p style="color:var(--emerald-deep); font-weight:600;">Receipt read successfully — review and confirm below.</p>
+      {% else %}
+        <p style="color:var(--coral); font-weight:600;">{{ result.error }}</p>
+      {% endif %}
+      <form method="POST" action="{{ url_for('confirm_receipt') }}">
+        <label for="merchant">Merchant</label>
+        <input type="text" id="merchant" name="merchant" value="{{ result.merchant or '' }}">
+        <div class="field-row">
+          <div>
+            <label for="amount">Total (₹)</label>
+            <input type="number" step="0.01" id="amount" name="amount" value="{{ result.amount or '' }}" required>
+          </div>
+          <div>
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" value="{{ result.date or today }}">
+          </div>
+        </div>
+        <label for="category">Category</label>
+        <select id="category" name="category">
+          {% for c in categories %}
+            <option value="{{ c }}" {{ 'selected' if c == result.category }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-block">Confirm & log expense</button>
+      </form>
+      {% if result.raw_text %}
+      <p style="margin-top:16px; font-size:12.5px; color:var(--ink-soft);">Raw OCR text</p>
+      <div class="raw-ocr">{{ result.raw_text }}</div>
+      {% endif %}
+    {% else %}
+    <div class="empty-state">
+      <span class="big-num">▤</span>
+      Upload a receipt to see the extracted fields here.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const input = document.getElementById('receipt');
+  const label = document.getElementById('dropzoneText');
+  input.addEventListener('change', () => {
+    if (input.files.length) label.textContent = input.files[0].name;
+  });
+</script>
+{% endblock %}

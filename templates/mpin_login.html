@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Quick access · Wallet AI{% endblock %}
+{% block auth_content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-text" style="color:var(--ink);">Wallet <strong style="color:var(--emerald);">AI</strong></span>
+    </div>
+    <h1 class="auth-title">Quick access</h1>
+    <p class="auth-sub">Enter your email and 4-digit MPIN.</p>
+    <form method="POST">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+      <label for="mpin">MPIN</label>
+      <input type="password" id="mpin" name="mpin" maxlength="4" pattern="\d{4}" class="otp-code" placeholder="••••" required>
+      <button type="submit" class="btn btn-primary btn-block">Unlock</button>
+    </form>
+    <div class="auth-foot"><a href="{{ url_for('login') }}">Use password instead</a></div>
+  </div>
+</div>
+{% endblock %}

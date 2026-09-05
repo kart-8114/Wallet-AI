@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Create account · Wallet AI{% endblock %}
+{% block auth_content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-text" style="color:var(--ink);">Wallet <strong style="color:var(--emerald);">AI</strong></span>
+    </div>
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-sub">Banking-grade security: hashed passwords, MPIN, and OTP verification.</p>
+    <form method="POST">
+      <div style="display: flex; gap: 10px;">
+        <div style="flex: 1;">
+          <label for="first_name">First name</label>
+          <input type="text" id="first_name" name="first_name" placeholder="Karthik" required>
+        </div>
+        <div style="flex: 1;">
+          <label for="last_name">Last name</label>
+          <input type="text" id="last_name" name="last_name" placeholder="Rao" required>
+        </div>
+      </div>
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      <label for="phone">Phone number</label>
+      <input type="text" id="phone" name="phone" placeholder="+91 9876543210">
+
+      <label for="address">Address</label>
+      <input type="text" id="address" name="address" placeholder="123 Street Name">
+
+      <div style="display: flex; gap: 10px;">
+        <div style="flex: 2;">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" placeholder="Mumbai">
+        </div>
+        <div style="flex: 1;">
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" placeholder="MH">
+        </div>
+        <div style="flex: 1;">
+          <label for="zip_code">ZIP Code</label>
+          <input type="text" id="zip_code" name="zip_code" placeholder="400001">
+        </div>
+      </div>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="At least 6 characters" required>
+      <label for="confirm">Confirm password</label>
+      <input type="password" id="confirm" name="confirm" placeholder="Re-enter password" required>
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+    <div class="auth-foot">Already have an account? <a href="{{ url_for('login') }}">Log in</a></div>
+  </div>
+</div>
+{% endblock %}

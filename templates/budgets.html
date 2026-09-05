@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Budgets · Wallet AI{% endblock %}
+{% block page_title %}Budgets{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Set a monthly limit</h2>
+    <form method="POST">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+      <label for="monthly_limit">Monthly limit (₹)</label>
+      <input type="number" step="0.01" min="0" id="monthly_limit" name="monthly_limit" placeholder="e.g. 5000" required>
+      <button type="submit" class="btn btn-primary btn-block">Save budget</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Your budgets</h2>
+    {% if rows %}
+      {% for b in rows %}
+      <div style="margin-bottom:16px;">
+        <div class="stat-row" style="justify-content:space-between;">
+          <strong>{{ b.category }}</strong>
+          <span style="color:var(--ink-soft); font-size:13px;">₹{{ "%.0f"|format(b.spent) }} / ₹{{ "%.0f"|format(b.limit) }}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill {{ 'over' if b.pct >= 100 else ('warn' if b.pct >= 80 else '') }}" style="width:{{ b.pct }}%;"></div></div>
+        <div class="stat-row" style="justify-content:space-between;">
+          <span style="font-size:12px; color:var(--ink-soft);">{{ b.pct }}% used</span>
+          <form method="POST" action="{{ url_for('delete_budget', budget_id=b.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty-state">No budgets yet — set one on the left.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

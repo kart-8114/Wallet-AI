@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Settings · Wallet AI{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;">
+  <h2 style="margin-bottom:14px;">Appearance</h2>
+  <form method="POST">
+    <div class="theme-toggle-row">
+      <label class="theme-opt {{ 'selected' if current_user.theme == 'light' }}">
+        <input type="radio" name="theme" value="light" {{ 'checked' if current_user.theme == 'light' }} style="width:auto; margin:0 0 6px;"><br>
+        Light
+      </label>
+      <label class="theme-opt {{ 'selected' if current_user.theme == 'dark' }}">
+        <input type="radio" name="theme" value="dark" {{ 'checked' if current_user.theme == 'dark' }} style="width:auto; margin:0 0 6px;"><br>
+        Dark
+      </label>
+    </div>
+    <div style="height:16px;"></div>
+    <h2 style="margin-bottom:14px;">Profile</h2>
+    <div style="display: flex; gap: 10px;">
+      <div style="flex: 1;">
+        <label for="first_name">First name</label>
+        <input type="text" id="first_name" name="first_name" value="{{ current_user.first_name }}" required>
+      </div>
+      <div style="flex: 1;">
+        <label for="last_name">Last name</label>
+        <input type="text" id="last_name" name="last_name" value="{{ current_user.last_name }}" required>
+      </div>
+    </div>
+    <label for="phone">Phone number</label>
+    <input type="text" id="phone" name="phone" value="{{ current_user.phone_number or '' }}" placeholder="+91 9876543210">
+
+    <label for="address">Address</label>
+    <input type="text" id="address" name="address" value="{{ current_user.address or '' }}" placeholder="123 Street Name">
+
+    <div style="display: flex; gap: 10px;">
+      <div style="flex: 2;">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" value="{{ current_user.city or '' }}" placeholder="Mumbai">
+      </div>
+      <div style="flex: 1;">
+        <label for="state">State</label>
+        <input type="text" id="state" name="state" value="{{ current_user.state or '' }}" placeholder="MH">
+      </div>
+      <div style="flex: 1;">
+        <label for="zip_code">ZIP Code</label>
+        <input type="text" id="zip_code" name="zip_code" value="{{ current_user.zip_code or '' }}" placeholder="400001">
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+    <button type="submit" class="btn btn-primary btn-block">Save preferences</button>
+  </form>
+  <div style="height:12px;"></div>
+  <a href="{{ url_for('setup_mpin') }}" class="btn btn-ghost btn-block">Change MPIN</a>
+</div>
+{% endblock %}

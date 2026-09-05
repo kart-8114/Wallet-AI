@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Goals · Wallet AI{% endblock %}
+{% block page_title %}Goals{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Create a new goal</h2>
+    <form method="POST">
+      <label for="title">Goal name</label>
+      <input type="text" id="title" name="title" placeholder="e.g. Emergency Fund" required>
+      <div class="field-row">
+        <div>
+          <label for="target_amount">Target amount (₹)</label>
+          <input type="number" step="0.01" min="0" id="target_amount" name="target_amount" required>
+        </div>
+        <div>
+          <label for="target_date">Target date (optional)</label>
+          <input type="date" id="target_date" name="target_date">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Create goal</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Your goals</h2>
+    {% if goals %}
+      {% for g in goals %}
+      <div style="margin-bottom:18px;">
+        <div class="stat-row" style="justify-content:space-between;">
+          <strong>{{ g.title }}</strong>
+          <span style="color:var(--ink-soft); font-size:13px;">₹{{ "%.0f"|format(g.saved_amount) }} / ₹{{ "%.0f"|format(g.target_amount) }}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:{{ g.progress_pct }}%;"></div></div>
+        <div class="stat-row" style="justify-content:space-between; margin-top:8px;">
+          <form method="POST" action="{{ url_for('contribute_goal', goal_id=g.id) }}" style="display:flex; gap:8px; margin:0;">
+            <input type="number" step="0.01" name="amount" placeholder="Add ₹" style="margin:0; width:110px;" required>
+            <button type="submit" class="btn btn-ghost btn-sm">Contribute</button>
+          </form>
+          <form method="POST" action="{{ url_for('delete_goal', goal_id=g.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty-state">No goals yet — create one on the left.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

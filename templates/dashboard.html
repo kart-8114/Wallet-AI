@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Wallet AI{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="grid grid-3">
+  <div class="card">
+    <h3>Balance</h3>
+    <div class="big-num">₹{{ "%.2f"|format(balance) }}</div>
+  </div>
+  <div class="card">
+    <h3>Spent (30 days)</h3>
+    <div class="big-num" style="color:var(--coral);">₹{{ "%.2f"|format(total_expense) }}</div>
+  </div>
+  <div class="card">
+    <h3>Income (30 days)</h3>
+    <div class="big-num" style="color:var(--emerald);">₹{{ "%.2f"|format(total_income) }}</div>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:18px;">
+  <div class="card">
+    <div class="section-head" style="margin-top:0;">
+      <h2>Recent transactions</h2>
+      <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-sm">+ Add expense</a>
+    </div>
+    {% if recent_txns %}
+    <table>
+      <thead><tr><th>Date</th><th>Merchant / Category</th><th>Type</th><th style="text-align:right;">Amount</th></tr></thead>
+      <tbody>
+      {% for t in recent_txns %}
+        <tr>
+          <td>{{ t.date.strftime('%d %b') }}</td>
+          <td>{{ t.merchant or t.category }}<br><span style="color:var(--ink-soft); font-size:12px;">{{ t.category }}</span></td>
+          <td><span class="pill pill-{{ t.type }}">{{ t.type }}</span></td>
+          <td style="text-align:right; font-weight:600;">₹{{ "%.2f"|format(t.amount) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <span class="big-num">◧</span>
+      No transactions yet. <a href="{{ url_for('add_expense') }}" style="color:var(--emerald); font-weight:600;">Add your first one</a>.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Spending by category</h2>
+    {% if by_category %}
+      {% for cat, amt in by_category.items() %}
+      <div class="cat-row">
+        <span><span class="cat-dot" style="background: hsl({{ (loop.index0 * 55) % 360 }}, 55%, 50%);"></span>{{ cat }}</span>
+        <strong>₹{{ "%.2f"|format(amt) }}</strong>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p>No expenses logged in the last 30 days.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section-head">
+  <h2>Budget status</h2>
+  <a href="{{ url_for('budgets') }}" class="btn btn-ghost btn-sm">Manage budgets</a>
+</div>
+{% if budget_status %}
+<div class="grid grid-3">
+  {% for b in budget_status %}
+  <div class="card">
+    <h3>{{ b.category }}</h3>
+    <div class="stat-row"><strong>₹{{ "%.0f"|format(b.spent) }}</strong><span style="color:var(--ink-soft);">/ ₹{{ "%.0f"|format(b.limit) }}</span></div>
+    <div class="progress-track"><div class="progress-fill {{ 'over' if b.pct >= 100 else ('warn' if b.pct >= 80 else '') }}" style="width:{{ b.pct }}%;"></div></div>
+    <span style="font-size:12.5px; color:var(--ink-soft);">{{ b.pct }}% used</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">No budgets set yet. <a href="{{ url_for('budgets') }}" style="color:var(--emerald); font-weight:600;">Create one</a> to get overspend alerts.</div>
+{% endif %}
+
+<div class="section-head">
+  <h2>Goals</h2>
+  <a href="{{ url_for('goals') }}" class="btn btn-ghost btn-sm">Manage goals</a>
+</div>
+{% if goals %}
+<div class="grid grid-3">
+  {% for g in goals %}
+  <div class="card">
+    <h3>{{ g.title }}</h3>
+    <div class="stat-row"><strong>₹{{ "%.0f"|format(g.saved_amount) }}</strong><span style="color:var(--ink-soft);">/ ₹{{ "%.0f"|format(g.target_amount) }}</span></div>
+    <div class="progress-track"><div class="progress-fill" style="width:{{ g.progress_pct }}%;"></div></div>
+    <span style="font-size:12.5px; color:var(--ink-soft);">{{ g.progress_pct }}% funded</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">No goals yet. <a href="{{ url_for('goals') }}" style="color:var(--emerald); font-weight:600;">Set your first goal</a>.</div>
+{% endif %}
+
+{% endblock %}
