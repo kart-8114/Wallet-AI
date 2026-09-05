@@ -23,20 +23,20 @@ CATEGORIES = ["Food", "Groceries", "Bills", "Transport", "Shopping",
 
 
 def create_app():
-    app = Flask(__name__)
-    app.config["SECRET_KEY"] = os.environ.get("WALLET_AI_SECRET", "dev-secret-change-me")
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'wallet_ai.db')}"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8MB uploads
+    flask_app = Flask(__name__)
+    flask_app.config["SECRET_KEY"] = os.environ.get("WALLET_AI_SECRET", "dev-secret-change-me")
+    flask_app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'wallet_ai.db')}"
+    flask_app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    flask_app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8MB uploads
     os.makedirs(os.path.join(BASE_DIR, "instance"), exist_ok=True)
 
-    db.init_app(app)
+    db.init_app(flask_app)
 
-    with app.app_context():
+    with flask_app.app_context():
         db.create_all()
 
-    register_routes(app)
-    return app
+    register_routes(flask_app)
+    return flask_app
 
 
 def login_required(view):
