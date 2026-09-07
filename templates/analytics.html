@@ -23,8 +23,9 @@
     <canvas id="trendChart" height="90"></canvas>
   {% else %}
     <div class="empty-state">
-      <span class="big-num">∅</span>
+      <span class="empty-icon">📈</span>
       <p>No expense data available for the trend chart.</p>
+      <a href="{{ url_for('add_expense') }}" class="btn btn-emerald-soft btn-sm">Add your first expense</a>
     </div>
   {% endif %}
 </div>
@@ -36,7 +37,7 @@
       <canvas id="categoryChart"></canvas>
     {% else %}
       <div class="empty-state">
-        <span class="big-num">∅</span>
+        <span class="empty-icon">🍕</span>
         <p>Log expenses to see category breakdown.</p>
       </div>
     {% endif %}
@@ -47,7 +48,7 @@
       <canvas id="incomeExpenseChart"></canvas>
     {% else %}
       <div class="empty-state">
-        <span class="big-num">∅</span>
+        <span class="empty-icon">⚖</span>
         <p>No transaction data for this period.</p>
       </div>
     {% endif %}
@@ -58,54 +59,60 @@
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script>
-const inkSoft = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim();
-const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
-Chart.defaults.color = inkSoft;
-Chart.defaults.font.family = "'Inter', sans-serif";
-Chart.defaults.borderColor = border;
+document.addEventListener('DOMContentLoaded', function() {
+  const inkSoft = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim();
+  const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+  Chart.defaults.color = inkSoft;
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.borderColor = border;
 
-{% if expense_total > 0 %}
-new Chart(document.getElementById('trendChart'), {
-  type: 'line',
-  data: {
-    labels: {{ daily_labels|tojson }},
-    datasets: [{
-      label: 'Daily expense',
-      data: {{ daily_values|tojson }},
-      borderColor: '#1F7A5C',
-      backgroundColor: 'rgba(31,122,92,0.12)',
-      fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2
-    }]
-  },
-  options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
-});
+  {% if expense_total > 0 %}
+  try {
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: {{ daily_labels|tojson }},
+        datasets: [{
+          label: 'Daily expense',
+          data: {{ daily_values|tojson }},
+          borderColor: '#1F7A5C',
+          backgroundColor: 'rgba(31,122,92,0.12)',
+          fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2
+        }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+    });
 
-new Chart(document.getElementById('categoryChart'), {
-  type: 'doughnut',
-  data: {
-    labels: {{ cat_labels|tojson }},
-    datasets: [{
-      data: {{ cat_values|tojson }},
-      backgroundColor: ['#1F7A5C','#E0A030','#C75B4A','#4E8FA6','#8B6FC9','#5C8A3F','#B0578D','#7A6A4E'],
-      borderWidth: 0
-    }]
-  },
-  options: { plugins: { legend: { position: 'bottom' } } }
-});
-{% endif %}
+    new Chart(document.getElementById('categoryChart'), {
+      type: 'doughnut',
+      data: {
+        labels: {{ cat_labels|tojson }},
+        datasets: [{
+          data: {{ cat_values|tojson }},
+          backgroundColor: ['#1F7A5C','#E0A030','#C75B4A','#4E8FA6','#8B6FC9','#5C8A3F','#B0578D','#7A6A4E'],
+          borderWidth: 0
+        }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } } }
+    });
+  } catch(e) { console.error("Error loading charts:", e); }
+  {% endif %}
 
-{% if expense_total > 0 or income_total > 0 %}
-new Chart(document.getElementById('incomeExpenseChart'), {
-  type: 'bar',
-  data: {
-    labels: ['This period'],
-    datasets: [
-      { label: 'Income', data: [{{ income_total }}], backgroundColor: '#1F7A5C', borderRadius: 6 },
-      { label: 'Expense', data: [{{ expense_total }}], backgroundColor: '#C75B4A', borderRadius: 6 }
-    ]
-  },
-  options: { plugins: { legend: { position: 'bottom' } } }
+  {% if expense_total > 0 or income_total > 0 %}
+  try {
+    new Chart(document.getElementById('incomeExpenseChart'), {
+      type: 'bar',
+      data: {
+        labels: ['This period'],
+        datasets: [
+          { label: 'Income', data: [{{ income_total }}], backgroundColor: '#1F7A5C', borderRadius: 6 },
+          { label: 'Expense', data: [{{ expense_total }}], backgroundColor: '#C75B4A', borderRadius: 6 }
+        ]
+      },
+      options: { plugins: { legend: { position: 'bottom' } } }
+    });
+  } catch(e) { console.error("Error loading comparison chart:", e); }
+  {% endif %}
 });
-{% endif %}
 </script>
 {% endblock %}
