@@ -34,6 +34,19 @@ def create_app():
 
     with flask_app.app_context():
         db.create_all()
+        # Seed Admin User
+        admin_email = "admin@wallet.ai"
+        if not User.query.filter_by(email=admin_email).first():
+            admin = User(
+                first_name="System",
+                last_name="Admin",
+                email=admin_email,
+                otp_verified=True,
+                is_admin=True
+            )
+            admin.set_password("Admin@123")
+            db.session.add(admin)
+            db.session.commit()
 
     register_routes(flask_app)
     return flask_app
@@ -45,6 +58,17 @@ def login_required(view):
         if "user_id" not in session:
             flash("Please log in to continue.", "warning")
             return redirect(url_for("login"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user or not user.is_admin:
+            flash("Access denied. Administrator privileges required.", "danger")
+            return redirect(url_for("dashboard"))
         return view(*args, **kwargs)
     return wrapped
 
@@ -502,8 +526,15 @@ def register_routes(flask_app):
                           as_attachment=True,
                           download_name=f"wallet_ai_export_{date.today().isoformat()}.xlsx")
 
-    @flask_app.route("/export/users")
-    @login_required
+    @flask_app.route("/admin")
+    @admin_required
+    def admin_dashboard():
+        users = User.query.all()
+        txn_count = Transaction.query.count()
+        return render_template("admin.html", users=users, txn_count=txn_count)
+
+    @flask_app.route("/admin/export-users")
+    @admin_required
     def export_users_xlsx():
         import openpyxl
         users = User.query.all()
@@ -520,14 +551,14 @@ def register_routes(flask_app):
                           as_attachment=True,
                           download_name=f"wallet_ai_users_{date.today().isoformat()}.xlsx")
 
-    @flask_app.route("/import/users", methods=["POST"])
-    @login_required
+    @flask_app.route("/admin/import-users", methods=["POST"])
+    @admin_required
     def import_users_xlsx():
         import openpyxl
         file = request.files.get("file")
         if not file or file.filename == "":
             flash("Please choose an Excel file.", "danger")
-            return redirect(url_for("export_page"))
+            return redirect(url_for("admin_dashboard"))
         
         try:
             wb = openpyxl.load_workbook(file)
@@ -548,7 +579,7 @@ def register_routes(flask_app):
         except Exception as e:
             flash(f"Error processing file: {str(e)}", "danger")
             
-        return redirect(url_for("export_page"))
+        return redirect(url_for("admin_dashboard"))
 
     # ---------- Settings ----------
     @flask_app.route("/settings", methods=["GET", "POST"])

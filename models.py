@@ -19,6 +19,7 @@ class User(db.Model):
     zip_code = db.Column(db.String(20), nullable=True)
     otp_code = db.Column(db.String(6), nullable=True)
     otp_verified = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False)
     theme = db.Column(db.String(10), default="light")
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 

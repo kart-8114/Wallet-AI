@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel · Wallet AI{% endblock %}
+{% block page_title %}Admin Panel{% endblock %}
+{% block content %}
+<div class="grid grid-3">
+  <div class="card">
+    <h3>Total Users</h3>
+    <div class="big-num">{{ users|length }}</div>
+  </div>
+  <div class="card">
+    <h3>Total Transactions</h3>
+    <div class="big-num">{{ txn_count }}</div>
+  </div>
+  <div class="card">
+    <h3>System Status</h3>
+    <div class="big-num" style="color:var(--emerald); font-size: 20px;">Healthy</div>
+  </div>
+</div>
+
+<div class="section-head" style="margin-top: 30px;">
+  <h2>User Management (Excel)</h2>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Export User Database</h3>
+    <p>Download all registered users. Use the "New Password" column for bulk resets.</p>
+    <a href="{{ url_for('export_users_xlsx') }}" class="btn btn-ghost btn-block">Download User List</a>
+  </div>
+  <div class="card">
+    <h3>Apply Password Resets</h3>
+    <p>Upload the modified Excel file to update user passwords securely.</p>
+    <form action="{{ url_for('import_users_xlsx') }}" method="POST" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".xlsx" required style="margin-bottom: 10px;">
+      <button type="submit" class="btn btn-primary btn-block">Upload & Apply Changes</button>
+    </form>
+  </div>
+</div>
+
+<div class="section-head" style="margin-top: 30px;">
+  <h2>Active Users</h2>
+</div>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.first_name }} {{ u.last_name }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.phone_number or '-' }}</td>
+        <td>
+            {% if u.is_admin %}
+            <span class="pill pill-income">Admin</span>
+            {% else %}
+            <span class="pill pill-source">User</span>
+            {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -19,17 +19,38 @@
 
 <div class="card" style="margin-top:18px;">
   <h2 style="margin-bottom:14px;">30-day spending trend</h2>
-  <canvas id="trendChart" height="90"></canvas>
+  {% if expense_total > 0 %}
+    <canvas id="trendChart" height="90"></canvas>
+  {% else %}
+    <div class="empty-state">
+      <span class="big-num">∅</span>
+      <p>No expense data available for the trend chart.</p>
+    </div>
+  {% endif %}
 </div>
 
 <div class="grid grid-2" style="margin-top:18px;">
   <div class="card">
     <h2 style="margin-bottom:14px;">Category breakdown</h2>
-    <canvas id="categoryChart"></canvas>
+    {% if expense_total > 0 %}
+      <canvas id="categoryChart"></canvas>
+    {% else %}
+      <div class="empty-state">
+        <span class="big-num">∅</span>
+        <p>Log expenses to see category breakdown.</p>
+      </div>
+    {% endif %}
   </div>
   <div class="card">
     <h2 style="margin-bottom:14px;">Income vs. expense</h2>
-    <canvas id="incomeExpenseChart"></canvas>
+    {% if expense_total > 0 or income_total > 0 %}
+      <canvas id="incomeExpenseChart"></canvas>
+    {% else %}
+      <div class="empty-state">
+        <span class="big-num">∅</span>
+        <p>No transaction data for this period.</p>
+      </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
@@ -43,6 +64,7 @@ Chart.defaults.color = inkSoft;
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.borderColor = border;
 
+{% if expense_total > 0 %}
 new Chart(document.getElementById('trendChart'), {
   type: 'line',
   data: {
@@ -70,7 +92,9 @@ new Chart(document.getElementById('categoryChart'), {
   },
   options: { plugins: { legend: { position: 'bottom' } } }
 });
+{% endif %}
 
+{% if expense_total > 0 or income_total > 0 %}
 new Chart(document.getElementById('incomeExpenseChart'), {
   type: 'bar',
   data: {
@@ -82,5 +106,6 @@ new Chart(document.getElementById('incomeExpenseChart'), {
   },
   options: { plugins: { legend: { position: 'bottom' } } }
 });
+{% endif %}
 </script>
 {% endblock %}

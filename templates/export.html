@@ -16,24 +16,4 @@
     <a href="{{ url_for('export_xlsx') }}" class="btn btn-primary btn-block">Download XLSX</a>
   </div>
 </div>
-
-<div class="section-head" style="margin-top: 40px;">
-  <h2>User Management (Admin)</h2>
-</div>
-
-<div class="grid grid-2">
-  <div class="card">
-    <h3>Export Users</h3>
-    <p>Download a list of all users. Add passwords in the "New Password" column to reset them in bulk.</p>
-    <a href="{{ url_for('export_users_xlsx') }}" class="btn btn-ghost btn-block">Export User List</a>
-  </div>
-  <div class="card">
-    <h3>Import Password Resets</h3>
-    <p>Upload the modified user Excel file to apply password changes.</p>
-    <form action="{{ url_for('import_users_xlsx') }}" method="POST" enctype="multipart/form-data">
-      <input type="file" name="file" accept=".xlsx" required style="margin-bottom: 10px;">
-      <button type="submit" class="btn btn-primary btn-block">Upload & Reset Passwords</button>
-    </form>
-  </div>
-</div>
 {% endblock %}
