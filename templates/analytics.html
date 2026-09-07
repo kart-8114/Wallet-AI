@@ -20,7 +20,10 @@
 <div class="card" style="margin-top:18px;">
   <h2 style="margin-bottom:14px;">30-day spending trend</h2>
   {% if expense_total > 0 %}
-    <canvas id="trendChart" height="90"></canvas>
+    <div class="chart-container">
+      <canvas id="trendChart" height="90"></canvas>
+      <div id="trendChartErr" class="chart-error" style="display:none;">Unable to load trend data.</div>
+    </div>
   {% else %}
     <div class="empty-state">
       <span class="empty-icon">📈</span>
@@ -34,7 +37,10 @@
   <div class="card">
     <h2 style="margin-bottom:14px;">Category breakdown</h2>
     {% if expense_total > 0 %}
-      <canvas id="categoryChart"></canvas>
+      <div class="chart-container">
+        <canvas id="categoryChart"></canvas>
+        <div id="categoryChartErr" class="chart-error" style="display:none;">Unable to load breakdown.</div>
+      </div>
     {% else %}
       <div class="empty-state">
         <span class="empty-icon">🍕</span>
@@ -45,7 +51,10 @@
   <div class="card">
     <h2 style="margin-bottom:14px;">Income vs. expense</h2>
     {% if expense_total > 0 or income_total > 0 %}
-      <canvas id="incomeExpenseChart"></canvas>
+      <div class="chart-container">
+        <canvas id="incomeExpenseChart"></canvas>
+        <div id="incomeExpenseChartErr" class="chart-error" style="display:none;">Unable to load comparison.</div>
+      </div>
     {% else %}
       <div class="empty-state">
         <span class="empty-icon">⚖</span>
@@ -57,61 +66,93 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const inkSoft = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim();
-  const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+  console.log("Analytics: Initializing charts...");
+
+  if (typeof Chart === 'undefined') {
+    console.error("Analytics: Chart.js library failed to load.");
+    document.querySelectorAll('.chart-error').forEach(el => el.style.display = 'block');
+    return;
+  }
+
+  const rootStyle = getComputedStyle(document.documentElement);
+  const inkSoft = rootStyle.getPropertyValue('--ink-soft').trim() || '#4E5C55';
+  const border = rootStyle.getPropertyValue('--border').trim() || '#DDE3DA';
+
   Chart.defaults.color = inkSoft;
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.borderColor = border;
 
-  {% if expense_total > 0 %}
-  try {
-    new Chart(document.getElementById('trendChart'), {
-      type: 'line',
-      data: {
-        labels: {{ daily_labels|tojson }},
-        datasets: [{
-          label: 'Daily expense',
-          data: {{ daily_values|tojson }},
-          borderColor: '#1F7A5C',
-          backgroundColor: 'rgba(31,122,92,0.12)',
-          fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2
-        }]
-      },
-      options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
-    });
+  function safeInit(id, config) {
+    try {
+      const ctx = document.getElementById(id);
+      if (ctx) {
+        new Chart(ctx, config);
+        console.log(`Analytics: ${id} initialized.`);
+      }
+    } catch (e) {
+      console.error(`Analytics: Failed to init ${id}:`, e);
+      const errEl = document.getElementById(id + 'Err');
+      if (errEl) errEl.style.display = 'block';
+    }
+  }
 
-    new Chart(document.getElementById('categoryChart'), {
-      type: 'doughnut',
-      data: {
-        labels: {{ cat_labels|tojson }},
-        datasets: [{
-          data: {{ cat_values|tojson }},
-          backgroundColor: ['#1F7A5C','#E0A030','#C75B4A','#4E8FA6','#8B6FC9','#5C8A3F','#B0578D','#7A6A4E'],
-          borderWidth: 0
-        }]
-      },
-      options: { plugins: { legend: { position: 'bottom' } } }
-    });
-  } catch(e) { console.error("Error loading charts:", e); }
+  {% if expense_total > 0 %}
+  safeInit('trendChart', {
+    type: 'line',
+    data: {
+      labels: {{ daily_labels|tojson }},
+      datasets: [{
+        label: 'Daily expense',
+        data: {{ daily_values|tojson }},
+        borderColor: '#1F7A5C',
+        backgroundColor: 'rgba(31,122,92,0.12)',
+        fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } }
+    }
+  });
+
+  safeInit('categoryChart', {
+    type: 'doughnut',
+    data: {
+      labels: {{ cat_labels|tojson }},
+      datasets: [{
+        data: {{ cat_values|tojson }},
+        backgroundColor: ['#1F7A5C','#E0A030','#C75B4A','#4E8FA6','#8B6FC9','#5C8A3F','#B0578D','#7A6A4E'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
   {% endif %}
 
   {% if expense_total > 0 or income_total > 0 %}
-  try {
-    new Chart(document.getElementById('incomeExpenseChart'), {
-      type: 'bar',
-      data: {
-        labels: ['This period'],
-        datasets: [
-          { label: 'Income', data: [{{ income_total }}], backgroundColor: '#1F7A5C', borderRadius: 6 },
-          { label: 'Expense', data: [{{ expense_total }}], backgroundColor: '#C75B4A', borderRadius: 6 }
-        ]
-      },
-      options: { plugins: { legend: { position: 'bottom' } } }
-    });
-  } catch(e) { console.error("Error loading comparison chart:", e); }
+  safeInit('incomeExpenseChart', {
+    type: 'bar',
+    data: {
+      labels: ['This period'],
+      datasets: [
+        { label: 'Income', data: [{{ income_total }}], backgroundColor: '#1F7A5C', borderRadius: 6 },
+        { label: 'Expense', data: [{{ expense_total }}], backgroundColor: '#C75B4A', borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
   {% endif %}
 });
 </script>
