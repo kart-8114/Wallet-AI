@@ -1,0 +1,23 @@
+{
+  "name": "Wallet AI",
+  "short_name": "Wallet AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F6F2",
+  "theme_color": "#1F7A5C",
+  "description": "Smart AI-powered personal finance manager.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2845/2845895.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2845/2845895.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

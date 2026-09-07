@@ -246,3 +246,31 @@ tr:last-child td { border-bottom: none; }
 .theme-opt.selected { border-color: var(--emerald); background: var(--emerald-soft); }
 
 .helper-text { font-size: 12.5px; color: var(--ink-soft); margin-top: -10px; margin-bottom: 16px; }
+
+/* ---------- Mobile PWA Styles ---------- */
+@media (max-width: 768px) {
+  .app-shell { flex-direction: column; }
+
+  .sidebar {
+    width: 100%; height: auto; position: fixed; bottom: 0; top: auto;
+    z-index: 100; padding: 6px 10px; flex-direction: row;
+    border-top: 1px solid var(--border);
+    justify-content: space-around;
+  }
+
+  .brand, .sidebar-foot, .nav-ic { display: none; }
+
+  .nav-links { flex-direction: row; gap: 4px; justify-content: space-around; width: 100%; }
+  .nav-links a {
+    flex-direction: column; padding: 8px 4px; gap: 4px; font-size: 11px;
+    color: var(--sidebar-ink); flex: 1; text-align: center;
+  }
+  .nav-links a::before { content: attr(data-icon); font-size: 18px; margin-bottom: 2px; }
+
+  .main-col { padding-bottom: 80px; }
+  .topbar { padding: 14px 20px; }
+  .content { padding: 16px 20px 40px; }
+
+  .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .card .big-num { font-size: 24px; }
+}

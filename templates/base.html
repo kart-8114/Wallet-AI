@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1F7A5C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2845/2845895.png">
 <title>{% block title %}Wallet AI{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,24 +32,24 @@
       <span class="brand-text">Wallet <strong>AI</strong></span>
     </div>
     <nav class="nav-links">
-      <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">
+      <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}" data-icon="◧">
         <span class="nav-ic">◧</span> Dashboard</a>
-      <a href="{{ url_for('transactions') }}" class="{{ 'active' if request.endpoint in ['transactions','add_expense'] }}">
+      <a href="{{ url_for('transactions') }}" class="{{ 'active' if request.endpoint in ['transactions','add_expense'] }}" data-icon="≡">
         <span class="nav-ic">≡</span> Transactions</a>
-      <a href="{{ url_for('scan_receipt') }}" class="{{ 'active' if request.endpoint=='scan_receipt' }}">
+      <a href="{{ url_for('scan_receipt') }}" class="{{ 'active' if request.endpoint=='scan_receipt' }}" data-icon="▤">
         <span class="nav-ic">▤</span> Scan Receipt</a>
-      <a href="{{ url_for('analytics') }}" class="{{ 'active' if request.endpoint=='analytics' }}">
+      <a href="{{ url_for('analytics') }}" class="{{ 'active' if request.endpoint=='analytics' }}" data-icon="▲">
         <span class="nav-ic">▲</span> Analytics</a>
-      <a href="{{ url_for('budgets') }}" class="{{ 'active' if request.endpoint=='budgets' }}">
+      <a href="{{ url_for('budgets') }}" class="{{ 'active' if request.endpoint=='budgets' }}" data-icon="◎">
         <span class="nav-ic">◎</span> Budgets</a>
-      <a href="{{ url_for('goals') }}" class="{{ 'active' if request.endpoint=='goals' }}">
+      <a href="{{ url_for('goals') }}" class="{{ 'active' if request.endpoint=='goals' }}" data-icon="★">
         <span class="nav-ic">★</span> Goals</a>
-      <a href="{{ url_for('chat') }}" class="{{ 'active' if request.endpoint=='chat' }}">
+      <a href="{{ url_for('chat') }}" class="{{ 'active' if request.endpoint=='chat' }}" data-icon="◈">
         <span class="nav-ic">◈</span> AI Assistant</a>
-      <a href="{{ url_for('export_page') }}" class="{{ 'active' if request.endpoint=='export_page' }}">
+      <a href="{{ url_for('export_page') }}" class="{{ 'active' if request.endpoint=='export_page' }}" data-icon="⇩">
         <span class="nav-ic">⇩</span> Export</a>
       {% if current_user.is_admin %}
-      <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint=='admin_dashboard' }}">
+      <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint=='admin_dashboard' }}" data-icon="🛡">
         <span class="nav-ic">🛡</span> Admin Panel</a>
       {% endif %}
     </nav>
@@ -92,6 +97,15 @@
 {% endif %}
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register("{{ url_for('static', filename='js/sw.js') }}")
+      .then(reg => console.log('SW Registered'))
+      .catch(err => console.log('SW Error', err));
+  });
+}
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
