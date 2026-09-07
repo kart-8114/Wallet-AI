@@ -502,6 +502,54 @@ def register_routes(flask_app):
                           as_attachment=True,
                           download_name=f"wallet_ai_export_{date.today().isoformat()}.xlsx")
 
+    @flask_app.route("/export/users")
+    @login_required
+    def export_users_xlsx():
+        import openpyxl
+        users = User.query.all()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Users"
+        ws.append(["Email", "First Name", "Last Name", "Phone", "New Password"])
+        for u in users:
+            ws.append([u.email, u.first_name, u.last_name, u.phone_number, ""])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                          as_attachment=True,
+                          download_name=f"wallet_ai_users_{date.today().isoformat()}.xlsx")
+
+    @flask_app.route("/import/users", methods=["POST"])
+    @login_required
+    def import_users_xlsx():
+        import openpyxl
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            flash("Please choose an Excel file.", "danger")
+            return redirect(url_for("export_page"))
+        
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+            updated_count = 0
+            # Skip header row
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                email = row[0]
+                new_pw = row[4]
+                if email and new_pw:
+                    user = User.query.filter_by(email=email).first()
+                    if user:
+                        user.set_password(str(new_pw))
+                        updated_count += 1
+            
+            db.session.commit()
+            flash(f"Successfully updated passwords for {updated_count} users.", "success")
+        except Exception as e:
+            flash(f"Error processing file: {str(e)}", "danger")
+            
+        return redirect(url_for("export_page"))
+
     # ---------- Settings ----------
     @flask_app.route("/settings", methods=["GET", "POST"])
     @login_required
