@@ -253,21 +253,38 @@ tr:last-child td { border-bottom: none; }
 
   .sidebar {
     width: 100%; height: auto; position: fixed; bottom: 0; top: auto;
-    z-index: 100; padding: 6px 10px; flex-direction: row;
+    z-index: 100; padding: 0; flex-direction: row;
     border-top: 1px solid var(--border);
-    justify-content: space-around;
+    background: var(--sidebar-bg);
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+  }
+  .sidebar::-webkit-scrollbar { display: none; /* Chrome, Safari and Opera */ }
+
+  .brand, .nav-ic { display: none; }
+
+  .nav-links, .sidebar-foot {
+    display: flex; flex-direction: row; gap: 4px; padding: 6px 10px;
   }
 
-  .brand, .sidebar-foot, .nav-ic { display: none; }
+  .sidebar-foot { border-top: 0; padding-left: 0; }
 
-  .nav-links { flex-direction: row; gap: 4px; justify-content: space-around; width: 100%; }
-  .nav-links a {
-    flex-direction: column; padding: 8px 4px; gap: 4px; font-size: 11px;
-    color: var(--sidebar-ink); flex: 1; text-align: center;
+  .nav-links a, .sidebar-foot a {
+    flex-direction: column; padding: 8px 12px; gap: 4px; font-size: 11px;
+    color: var(--sidebar-ink); min-width: 70px; text-align: center;
+    white-space: nowrap;
   }
-  .nav-links a::before { content: attr(data-icon); font-size: 18px; margin-bottom: 2px; }
+  .nav-links a::before, .sidebar-foot a::before {
+    content: attr(data-icon); font-size: 18px; margin-bottom: 2px;
+  }
 
-  .main-col { padding-bottom: 80px; }
+  /* Hide text in sidebar-foot since we use data-icon */
+  .sidebar-foot a { font-size: 0; }
+  .sidebar-foot a::after { content: 'Settings'; font-size: 11px; display: block; }
+  .sidebar-foot a[data-icon="⏻"]::after { content: 'Logout'; }
+
+  .main-col { padding-bottom: 85px; }
   .topbar { padding: 14px 20px; }
   .content { padding: 16px 20px 40px; }
 

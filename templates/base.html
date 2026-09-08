@@ -54,8 +54,8 @@
       {% endif %}
     </nav>
     <div class="sidebar-foot">
-      <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint=='settings' }}">⚙ Settings</a>
-      <a href="{{ url_for('logout') }}">⏻ Logout</a>
+      <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint=='settings' }}" data-icon="⚙">⚙ Settings</a>
+      <a href="{{ url_for('logout') }}" data-icon="⏻">⏻ Logout</a>
     </div>
   </aside>
 
