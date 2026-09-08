@@ -40,6 +40,14 @@ def create_app():
     db.init_app(flask_app)
 
     with flask_app.app_context():
+        # Diagnostic Log
+        engine_name = db.engine.url.drivername
+        print(f"DATABASE DIAGNOSTIC: Using engine {engine_name}")
+        if "sqlite" in engine_name:
+            print(f"WARNING: App is using SQLite. Data will NOT persist on Render restarts.")
+        else:
+            print(f"SUCCESS: App is using {engine_name}. Data will persist.")
+
         db.create_all()
         # Seed Admin User
         admin_email = "admin@wallet.ai"
@@ -538,7 +546,13 @@ def register_routes(flask_app):
     def admin_dashboard():
         users = User.query.all()
         txn_count = Transaction.query.count()
-        return render_template("admin.html", users=users, txn_count=txn_count)
+        db_engine = db.engine.url.drivername
+        db_path = db.engine.url.database
+        return render_template("admin.html", 
+                               users=users, 
+                               txn_count=txn_count,
+                               db_engine=db_engine,
+                               db_path=db_path)
 
     @flask_app.route("/admin/export-users")
     @admin_required

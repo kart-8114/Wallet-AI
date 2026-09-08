@@ -18,6 +18,36 @@
 </div>
 
 <div class="section-head" style="margin-top: 30px;">
+  <h2>Database Diagnostics</h2>
+</div>
+<div class="card">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+      <label>Active Engine</label>
+      <div style="font-weight: 700; color: {{ 'var(--emerald)' if 'postgres' in db_engine else 'var(--coral)' }};">
+        {{ db_engine|upper }}
+      </div>
+    </div>
+    <div>
+      <label>Database Location</label>
+      <div style="font-size: 13px; color: var(--ink-soft); word-break: break-all;">
+        {{ db_path }}
+      </div>
+    </div>
+  </div>
+  {% if 'sqlite' in db_engine %}
+  <div class="flash flash-warning" style="margin-top: 15px; font-size: 12px;">
+    ⚠️ <strong>Warning:</strong> You are using SQLite. On Render, data will be lost when the service restarts.
+    Ensure you have set the <code>DATABASE_URL</code> environment variable.
+  </div>
+  {% else %}
+  <div class="flash flash-success" style="margin-top: 15px; font-size: 12px;">
+    ✅ <strong>Success:</strong> Your data is stored in PostgreSQL and will persist across restarts.
+  </div>
+  {% endif %}
+</div>
+
+<div class="section-head" style="margin-top: 30px;">
   <h2>User Management (Excel)</h2>
 </div>
 
