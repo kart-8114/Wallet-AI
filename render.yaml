@@ -13,6 +13,12 @@ services:
         generateValue: true
       - key: WALLET_AI_SECRET
         generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+        placeholder: "Paste your Google Gemini API key here"
+      - key: GA_MEASUREMENT_ID
+        sync: false
+        placeholder: "G-XXXXXXXXXX (Optional)"
 
 databases:
   - name: wallet-ai-db
