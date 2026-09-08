@@ -45,6 +45,20 @@
     ✅ <strong>Success:</strong> Your data is stored in PostgreSQL and will persist across restarts.
   </div>
   {% endif %}
+
+  <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+    <label style="margin-bottom: 10px;">Environment Variable Check</label>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+      {% for key, found in env_vars.items() %}
+      <div style="padding: 6px 10px; border-radius: 6px; background: var(--surface-2); font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+        <code>{{ key }}</code>
+        <span style="font-weight: 700; color: {{ 'var(--emerald)' if found else 'var(--coral)' }};">
+          {{ 'FOUND' if found else 'MISSING' }}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 
 <div class="section-head" style="margin-top: 30px;">

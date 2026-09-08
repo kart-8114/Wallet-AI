@@ -26,8 +26,14 @@ def create_app():
     flask_app = Flask(__name__)
     flask_app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.environ.get("WALLET_AI_SECRET", "dev-secret-change-me")
     
-    # Database Configuration: PostgreSQL on Render, SQLite locally
-    database_url = os.environ.get("DATABASE_URL")
+    # Smarter Database Configuration
+    # We check for multiple common names Render uses for Postgres
+    database_url = (
+        os.environ.get("DATABASE_URL") or 
+        os.environ.get("DATABASE_PRIVATE_URL") or 
+        os.environ.get("DATABASE_PUBLIC_URL")
+    )
+    
     if database_url and database_url.startswith("postgres://"):
         # SQLAlchemy requires 'postgresql://' instead of 'postgres://'
         database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -548,11 +554,21 @@ def register_routes(flask_app):
         txn_count = Transaction.query.count()
         db_engine = db.engine.url.drivername
         db_path = db.engine.url.database
+        
+        # Check for presence of env vars (masked)
+        env_vars = {
+            "DATABASE_URL": bool(os.environ.get("DATABASE_URL")),
+            "DATABASE_PRIVATE_URL": bool(os.environ.get("DATABASE_PRIVATE_URL")),
+            "DATABASE_PUBLIC_URL": bool(os.environ.get("DATABASE_PUBLIC_URL")),
+            "SECRET_KEY": bool(os.environ.get("SECRET_KEY")),
+        }
+        
         return render_template("admin.html", 
                                users=users, 
                                txn_count=txn_count,
                                db_engine=db_engine,
-                               db_path=db_path)
+                               db_path=db_path,
+                               env_vars=env_vars)
 
     @flask_app.route("/admin/export-users")
     @admin_required
