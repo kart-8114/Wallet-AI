@@ -323,6 +323,15 @@ def register_routes(flask_app):
         flash("Transaction deleted.", "info")
         return redirect(url_for("transactions"))
 
+    @flask_app.route("/transactions/clear-all", methods=["POST"])
+    @login_required
+    def clear_all_transactions():
+        user = current_user()
+        deleted_count = Transaction.query.filter_by(user_id=user.id).delete()
+        db.session.commit()
+        flash(f"All transactions cleared ({deleted_count} deleted).", "info")
+        return redirect(url_for("transactions"))
+
     # ---------- OCR Receipt Scanner ----------
     @flask_app.route("/scan-receipt", methods=["GET", "POST"])
     @login_required

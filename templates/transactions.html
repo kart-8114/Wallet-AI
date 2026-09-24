@@ -4,7 +4,14 @@
 {% block content %}
 <div class="section-head" style="margin-top:0;">
   <h2>All transactions</h2>
-  <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-sm">+ Add expense</a>
+  <div style="display: flex; gap: 8px; align-items: center;">
+    {% if txns %}
+    <form method="POST" action="{{ url_for('clear_all_transactions') }}" onsubmit="return confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.');">
+      <button type="submit" class="btn btn-danger btn-sm">All Clear</button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-sm">+ Add expense</a>
+  </div>
 </div>
 <div class="card">
   {% if txns %}
