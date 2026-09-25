@@ -36,6 +36,8 @@
         <span class="nav-ic">◧</span> Dashboard</a>
       <a href="{{ url_for('transactions') }}" class="{{ 'active' if request.endpoint in ['transactions','add_expense'] }}" data-icon="≡">
         <span class="nav-ic">≡</span> Transactions</a>
+      <a href="{{ url_for('upload_statement') }}" class="{{ 'active' if request.endpoint in ['upload_statement','confirm_statement'] }}" data-icon="📄">
+        <span class="nav-ic">📄</span> Import Statement</a>
       <a href="{{ url_for('scan_receipt') }}" class="{{ 'active' if request.endpoint=='scan_receipt' }}" data-icon="▤">
         <span class="nav-ic">▤</span> Scan Receipt</a>
       <a href="{{ url_for('analytics') }}" class="{{ 'active' if request.endpoint=='analytics' }}" data-icon="▲">

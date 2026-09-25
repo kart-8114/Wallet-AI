@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Import Bank Statement · Wallet AI{% endblock %}
+{% block page_title %}Import Bank Statement{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+  <h2 style="margin-bottom: 8px;">📄 Upload Bank Statement (PDF)</h2>
+  <p style="color: var(--ink-soft); font-size: 14px; margin-bottom: 20px;">
+    Upload your bank statement PDF (SBI, HDFC, ICICI, Axis, PayTM, or standard bank PDF).
+    Wallet AI will automatically read transaction dates, merchants/descriptions, debit/credit types, and amounts for instant bulk importing.
+  </p>
+
+  <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_statement') }}">
+    <label class="dropzone" for="statement" id="dropzoneLabel" style="border: 2px dashed var(--border); padding: 36px 20px; text-align: center; border-radius: 12px; cursor: pointer; display: block; background: var(--surface-2);">
+      <span class="dropzone-icon" style="font-size: 32px; display: block; margin-bottom: 10px;">📄</span>
+      <span id="dropzoneText" style="font-weight: 600; color: var(--ink);">Click to select a PDF statement, or drag one here</span>
+      <input type="file" id="statement" name="statement" accept="application/pdf" style="display:none;" required>
+    </label>
+    <div style="height: 20px;"></div>
+    <button type="submit" class="btn btn-primary btn-block">Parse Statement Transactions</button>
+  </form>
+
+  <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--ink-soft);">
+    <strong>Supported Formats & Tips:</strong>
+    <ul style="margin-top: 8px; padding-left: 20px; line-height: 1.6;">
+      <li>Supports standard digital bank statement PDFs with text tables.</li>
+      <li>After parsing, you can preview, edit categories, and select which transactions to import.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const input = document.getElementById('statement');
+  const label = document.getElementById('dropzoneText');
+  input.addEventListener('change', () => {
+    if (input.files.length) label.textContent = input.files[0].name;
+  });
+</script>
+{% endblock %}

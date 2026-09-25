@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from extensions import db
 from models import User, Transaction, Budget, Goal
 from ocr import extract_receipt_fields
+from statement_parser import extract_transactions_from_pdf
 from ai_assistant import generate_reply
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -377,6 +378,90 @@ def register_routes(flask_app):
         db.session.add(t)
         db.session.commit()
         flash("Receipt logged to your transactions.", "success")
+        return redirect(url_for("transactions"))
+
+    # ---------- Bank Statement PDF Reader ----------
+    @flask_app.route("/upload-statement", methods=["GET", "POST"])
+    @login_required
+    def upload_statement():
+        if request.method == "POST":
+            file = request.files.get("statement")
+            if not file or file.filename == "":
+                flash("Please select a bank statement PDF file.", "danger")
+                return redirect(url_for("upload_statement"))
+            
+            if not file.filename.lower().endswith(".pdf"):
+                flash("Only PDF files (.pdf) are supported.", "danger")
+                return redirect(url_for("upload_statement"))
+
+            filename = secure_filename(file.filename)
+            path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_stmt_{int(datetime.utcnow().timestamp())}_{filename}")
+            file.save(path)
+
+            res = extract_transactions_from_pdf(path)
+            if not res["ok"] or not res["transactions"]:
+                flash(res.get("error") or "No readable transactions found in this PDF statement.", "danger")
+                return redirect(url_for("upload_statement"))
+
+            txns = res["transactions"]
+            total_income = sum(t["amount"] for t in txns if t["type"] == "income")
+            total_expense = sum(t["amount"] for t in txns if t["type"] == "expense")
+
+            return render_template(
+                "confirm_statement.html",
+                transactions=txns,
+                total_income=round(total_income, 2),
+                total_expense=round(total_expense, 2),
+                categories=CATEGORIES,
+            )
+
+        return render_template("upload_statement.html")
+
+    @flask_app.route("/confirm-statement", methods=["POST"])
+    @login_required
+    def confirm_statement():
+        user = current_user()
+        try:
+            total_count = int(request.form.get("total_count", 0))
+        except ValueError:
+            total_count = 0
+
+        imported_count = 0
+        for i in range(total_count):
+            if request.form.get(f"include_{i}") == "1":
+                try:
+                    amount = float(request.form.get(f"amount_{i}", 0))
+                except (TypeError, ValueError):
+                    continue
+
+                if amount <= 0:
+                    continue
+
+                raw_date = request.form.get(f"date_{i}") or date.today().isoformat()
+                try:
+                    txn_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+                except ValueError:
+                    txn_date = date.today()
+
+                merchant = request.form.get(f"merchant_{i}", "").strip() or "Bank Statement Transaction"
+                category = request.form.get(f"category_{i}") or "Other"
+                type_val = request.form.get(f"type_{i}") or "expense"
+
+                t = Transaction(
+                    user_id=user.id,
+                    type=type_val if type_val in ["income", "expense"] else "expense",
+                    category=category if category in CATEGORIES else "Other",
+                    merchant=merchant[:160],
+                    amount=amount,
+                    note="Imported from Bank Statement PDF",
+                    date=txn_date,
+                    source="statement",
+                )
+                db.session.add(t)
+                imported_count += 1
+
+        db.session.commit()
+        flash(f"Successfully imported {imported_count} transactions from bank statement.", "success")
         return redirect(url_for("transactions"))
 
     # ---------- Analytics ----------
