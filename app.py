@@ -398,7 +398,14 @@ def register_routes(flask_app):
             path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_stmt_{int(datetime.utcnow().timestamp())}_{filename}")
             file.save(path)
 
-            res = extract_transactions_from_pdf(path)
+            try:
+                res = extract_transactions_from_pdf(path)
+            finally:
+                if os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except Exception:
+                        pass
             if not res["ok"] or not res["transactions"]:
                 flash(res.get("error") or "No readable transactions found in this PDF statement.", "danger")
                 return redirect(url_for("upload_statement"))
