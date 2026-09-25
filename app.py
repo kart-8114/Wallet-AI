@@ -327,7 +327,7 @@ def register_routes(flask_app):
     @login_required
     def clear_all_transactions():
         user = current_user()
-        deleted_count = Transaction.query.filter_by(user_id=user.id).delete()
+        deleted_count = Transaction.query.filter_by(user_id=user.id).delete(synchronize_session=False)
         db.session.commit()
         flash(f"All transactions cleared ({deleted_count} deleted).", "info")
         return redirect(url_for("transactions"))
@@ -453,6 +453,7 @@ def register_routes(flask_app):
         b = Budget.query.filter_by(id=budget_id, user_id=user.id).first_or_404()
         db.session.delete(b)
         db.session.commit()
+        flash("Budget deleted.", "info")
         return redirect(url_for("budgets"))
 
     # ---------- Goals ----------
@@ -501,6 +502,7 @@ def register_routes(flask_app):
         g = Goal.query.filter_by(id=goal_id, user_id=user.id).first_or_404()
         db.session.delete(g)
         db.session.commit()
+        flash("Goal deleted.", "info")
         return redirect(url_for("goals"))
 
     # ---------- AI Chat Assistant ----------
