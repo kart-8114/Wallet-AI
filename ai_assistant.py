@@ -17,8 +17,11 @@ from models import Transaction
 try:
     from google import genai
     GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-    client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
-except ImportError:
+    if GEMINI_KEY and not GEMINI_KEY.strip().startswith("Paste your"):
+        client = genai.Client(api_key=GEMINI_KEY.strip())
+    else:
+        client = None
+except Exception:
     client = None
 
 

@@ -46,28 +46,31 @@ def create_app():
     db.init_app(flask_app)
 
     with flask_app.app_context():
-        # Diagnostic Log
-        engine_name = db.engine.url.drivername
-        print(f"DATABASE DIAGNOSTIC: Using engine {engine_name}")
-        if "sqlite" in engine_name:
-            print(f"WARNING: App is using SQLite. Data will NOT persist on Render restarts.")
-        else:
-            print(f"SUCCESS: App is using {engine_name}. Data will persist.")
+        try:
+            # Diagnostic Log
+            engine_name = db.engine.url.drivername
+            print(f"DATABASE DIAGNOSTIC: Using engine {engine_name}")
+            if "sqlite" in engine_name:
+                print(f"WARNING: App is using SQLite. Data will NOT persist on Render restarts.")
+            else:
+                print(f"SUCCESS: App is using {engine_name}. Data will persist.")
 
-        db.create_all()
-        # Seed Admin User
-        admin_email = "admin@wallet.ai"
-        if not User.query.filter_by(email=admin_email).first():
-            admin = User(
-                first_name="System",
-                last_name="Admin",
-                email=admin_email,
-                otp_verified=True,
-                is_admin=True
-            )
-            admin.set_password("Admin@123")
-            db.session.add(admin)
-            db.session.commit()
+            db.create_all()
+            # Seed Admin User
+            admin_email = "admin@wallet.ai"
+            if not User.query.filter_by(email=admin_email).first():
+                admin = User(
+                    first_name="System",
+                    last_name="Admin",
+                    email=admin_email,
+                    otp_verified=True,
+                    is_admin=True
+                )
+                admin.set_password("Admin@123")
+                db.session.add(admin)
+                db.session.commit()
+        except Exception as err:
+            print(f"DATABASE INITIALIZATION WARNING: Could not auto-initialize DB on boot: {err}")
 
     register_routes(flask_app)
     return flask_app
