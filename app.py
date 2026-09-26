@@ -663,12 +663,32 @@ def register_routes(flask_app):
         db_engine = db.engine.url.drivername
         db_path = db.engine.url.database
         
-        # Check for presence of env vars (masked)
+        # Check for presence of env vars
+        db_active = bool(os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PRIVATE_URL") or os.environ.get("DATABASE_PUBLIC_URL"))
+        gemini_raw = (os.environ.get("GEMINI_API_KEY") or "").strip()
+        gemini_active = bool(gemini_raw and not gemini_raw.startswith("Paste your"))
+
         env_vars = {
-            "DATABASE_URL": bool(os.environ.get("DATABASE_URL")),
-            "DATABASE_PRIVATE_URL": bool(os.environ.get("DATABASE_PRIVATE_URL")),
-            "DATABASE_PUBLIC_URL": bool(os.environ.get("DATABASE_PUBLIC_URL")),
-            "SECRET_KEY": bool(os.environ.get("SECRET_KEY")),
+            "DATABASE_URL": {
+                "label": "FOUND" if os.environ.get("DATABASE_URL") else "MISSING",
+                "status": "success" if os.environ.get("DATABASE_URL") else "danger"
+            },
+            "DATABASE_PRIVATE_URL": {
+                "label": "FOUND" if os.environ.get("DATABASE_PRIVATE_URL") else ("OPTIONAL" if db_active else "MISSING"),
+                "status": "success" if os.environ.get("DATABASE_PRIVATE_URL") else ("info" if db_active else "danger")
+            },
+            "DATABASE_PUBLIC_URL": {
+                "label": "FOUND" if os.environ.get("DATABASE_PUBLIC_URL") else ("OPTIONAL" if db_active else "MISSING"),
+                "status": "success" if os.environ.get("DATABASE_PUBLIC_URL") else ("info" if db_active else "danger")
+            },
+            "SECRET_KEY": {
+                "label": "FOUND" if os.environ.get("SECRET_KEY") else "MISSING",
+                "status": "success" if os.environ.get("SECRET_KEY") else "danger"
+            },
+            "GEMINI_API_KEY": {
+                "label": "FOUND" if gemini_active else "OPTIONAL",
+                "status": "success" if gemini_active else "info"
+            }
         }
         
         return render_template("admin.html", 

@@ -9,6 +9,14 @@ services:
         fromDatabase:
           name: wallet-ai-db
           property: connectionString
+      - key: DATABASE_PRIVATE_URL
+        fromDatabase:
+          name: wallet-ai-db
+          property: internalConnectionString
+      - key: DATABASE_PUBLIC_URL
+        fromDatabase:
+          name: wallet-ai-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: WALLET_AI_SECRET
