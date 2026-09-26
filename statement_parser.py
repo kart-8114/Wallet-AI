@@ -8,6 +8,7 @@ and integer/decimal amount formats.
 import re
 from datetime import datetime, date
 from pypdf import PdfReader
+from paytm_importer import parse_paytm_statement
 
 CATEGORY_KEYWORDS = {
     "Food": ["swiggy", "zomato", "restaurant", "cafe", "food", "kitchen", "pizza", "burger", "coffee", "diner", "eatery", "bakery", "mcdonald", "starbucks", "kfc", "domino", "hotel"],
@@ -79,6 +80,14 @@ def _find_date_in_text(text: str):
 
 def extract_transactions_from_pdf(pdf_path: str) -> dict:
     try:
+        # First check if it is a Paytm statement
+        try:
+            paytm_res = parse_paytm_statement(pdf_path)
+            if paytm_res and paytm_res.get("ok") and paytm_res.get("total_parsed", 0) > 0:
+                return paytm_res
+        except Exception:
+            pass
+
         reader = PdfReader(pdf_path)
         full_text_lines = []
         for page in reader.pages:

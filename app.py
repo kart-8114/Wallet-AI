@@ -434,6 +434,8 @@ def register_routes(flask_app):
             total_count = 0
 
         txns_to_add = []
+        duplicate_count = 0
+
         for i in range(total_count):
             if request.form.get(f"include_{i}") == "1":
                 try:
@@ -453,6 +455,28 @@ def register_routes(flask_app):
                 merchant = request.form.get(f"merchant_{i}", "").strip() or "Bank Statement Transaction"
                 category = request.form.get(f"category_{i}") or "Other"
                 type_val = request.form.get(f"type_{i}") or "expense"
+                reference = (request.form.get(f"reference_{i}") or "").strip() or None
+                tag = (request.form.get(f"tag_{i}") or "").strip()
+
+                # Duplicate Check
+                duplicate = None
+                if reference:
+                    duplicate = Transaction.query.filter_by(user_id=user.id, reference=reference).first()
+                
+                if not duplicate:
+                    duplicate = Transaction.query.filter_by(
+                        user_id=user.id,
+                        date=txn_date,
+                        amount=amount,
+                        merchant=merchant[:160],
+                        type=type_val if type_val in ["income", "expense"] else "expense"
+                    ).first()
+
+                if duplicate:
+                    duplicate_count += 1
+                    continue
+
+                note_text = f"Imported from Statement {f'(Tag: #{tag})' if tag else ''} {f'[UPI Ref: {reference}]' if reference else ''}".strip()
 
                 txns_to_add.append(Transaction(
                     user_id=user.id,
@@ -460,9 +484,10 @@ def register_routes(flask_app):
                     category=category if category in CATEGORIES else "Other",
                     merchant=merchant[:160],
                     amount=amount,
-                    note="Imported from Bank Statement PDF",
+                    note=note_text[:255],
                     date=txn_date,
                     source="statement",
+                    reference=reference,
                 ))
 
         if txns_to_add:
@@ -470,7 +495,10 @@ def register_routes(flask_app):
             db.session.commit()
         
         imported_count = len(txns_to_add)
-        flash(f"Successfully imported {imported_count} transactions from bank statement.", "success")
+        if duplicate_count > 0:
+            flash(f"Import completed! {imported_count} transactions added, {duplicate_count} duplicate(s) skipped.", "success")
+        else:
+            flash(f"Successfully imported {imported_count} transactions from bank statement.", "success")
         return redirect(url_for("transactions"))
 
     # ---------- Analytics ----------

@@ -51,7 +51,8 @@ class Transaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(255), nullable=True)
     date = db.Column(db.Date, default=dt.date.today, nullable=False)
-    source = db.Column(db.String(20), default="manual")  # manual | ocr | ai
+    source = db.Column(db.String(20), default="manual")  # manual | ocr | ai | statement
+    reference = db.Column(db.String(100), nullable=True, index=True)  # UPI Ref No for duplicate checks
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 
     def to_dict(self):
@@ -64,6 +65,7 @@ class Transaction(db.Model):
             "note": self.note,
             "date": self.date.isoformat(),
             "source": self.source,
+            "reference": self.reference,
         }
 
 

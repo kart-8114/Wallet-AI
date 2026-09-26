@@ -22,7 +22,12 @@
     {% for t in txns %}
       <tr>
         <td>{{ t.date.strftime('%d %b %Y') }}</td>
-        <td>{{ t.merchant or '—' }}</td>
+        <td>
+          <div style="font-weight: 500;">{{ t.merchant or '—' }}</div>
+          {% if t.reference %}
+          <div style="font-size: 10px; color: var(--ink-soft); opacity: 0.85;">Ref: {{ t.reference }}</div>
+          {% endif %}
+        </td>
         <td>{{ t.category }}</td>
         <td><span class="pill pill-{{ t.type }}">{{ t.type }}</span></td>
         <td><span class="pill pill-source">{{ t.source }}</span></td>

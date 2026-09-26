@@ -39,12 +39,20 @@
           <tr>
             <td>
               <input type="checkbox" name="include_{{ loop.index0 }}" value="1" checked class="txn-check">
+              <input type="hidden" name="reference_{{ loop.index0 }}" value="{{ t.reference or '' }}">
+              <input type="hidden" name="tag_{{ loop.index0 }}" value="{{ t.tag or '' }}">
             </td>
             <td>
               <input type="date" name="date_{{ loop.index0 }}" value="{{ t.date }}" required style="padding: 4px 8px; font-size: 13px;">
             </td>
             <td>
               <input type="text" name="merchant_{{ loop.index0 }}" value="{{ t.merchant }}" style="padding: 4px 8px; font-size: 13px; width: 100%;">
+              {% if t.reference or t.tag %}
+              <div style="font-size: 11px; margin-top: 3px; color: var(--ink-soft); display: flex; gap: 8px; align-items: center;">
+                {% if t.reference %}<span style="background: var(--surface-2); padding: 1px 5px; border-radius: 4px;">UPI Ref: {{ t.reference }}</span>{% endif %}
+                {% if t.tag %}<span style="background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--emerald-deep);">#{{ t.tag }}</span>{% endif %}
+              </div>
+              {% endif %}
             </td>
             <td>
               <select name="type_{{ loop.index0 }}" style="padding: 4px 8px; font-size: 13px;">
