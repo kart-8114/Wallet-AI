@@ -433,7 +433,7 @@ def register_routes(flask_app):
         except ValueError:
             total_count = 0
 
-        imported_count = 0
+        txns_to_add = []
         for i in range(total_count):
             if request.form.get(f"include_{i}") == "1":
                 try:
@@ -454,7 +454,7 @@ def register_routes(flask_app):
                 category = request.form.get(f"category_{i}") or "Other"
                 type_val = request.form.get(f"type_{i}") or "expense"
 
-                t = Transaction(
+                txns_to_add.append(Transaction(
                     user_id=user.id,
                     type=type_val if type_val in ["income", "expense"] else "expense",
                     category=category if category in CATEGORIES else "Other",
@@ -463,11 +463,13 @@ def register_routes(flask_app):
                     note="Imported from Bank Statement PDF",
                     date=txn_date,
                     source="statement",
-                )
-                db.session.add(t)
-                imported_count += 1
+                ))
 
-        db.session.commit()
+        if txns_to_add:
+            db.session.add_all(txns_to_add)
+            db.session.commit()
+        
+        imported_count = len(txns_to_add)
         flash(f"Successfully imported {imported_count} transactions from bank statement.", "success")
         return redirect(url_for("transactions"))
 
