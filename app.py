@@ -8,6 +8,7 @@ from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
                     session, flash, jsonify, send_file)
 from werkzeug.utils import secure_filename
+from sqlalchemy import text
 
 from extensions import db
 from models import User, Transaction, Budget, Goal
@@ -59,6 +60,24 @@ def create_app():
                 print(f"SUCCESS: App is using {engine_name}. Data will persist.")
 
             db.create_all()
+
+            # Auto-migrate missing columns for existing PostgreSQL / SQLite tables
+            try:
+                if "postgres" in engine_name:
+                    db.session.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reference VARCHAR(100);"))
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS mpin_hash VARCHAR(255);"))
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS theme VARCHAR(10) DEFAULT 'light';"))
+                    db.session.commit()
+                elif "sqlite" in engine_name:
+                    try:
+                        db.session.execute(text("ALTER TABLE transactions ADD COLUMN reference VARCHAR(100);"))
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+            except Exception as mig_err:
+                print(f"AUTO-MIGRATION NOTICE: {mig_err}")
+                db.session.rollback()
+
             # Seed Admin User
             admin_email = "admin@wallet.ai"
             if not User.query.filter_by(email=admin_email).first():
