@@ -272,7 +272,7 @@ def register_routes(flask_app):
         recent = [t for t in txns if t.date >= last_30]
         total_expense = sum(t.amount for t in recent if t.type == "expense")
         total_income = sum(t.amount for t in recent if t.type == "income")
-        balance = sum(t.amount for t in txns if t.type == "income") - sum(t.amount for t in txns if t.type == "expense")
+        balance = total_income - total_expense
 
         by_category = {}
         for t in recent:
