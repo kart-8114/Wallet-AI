@@ -16,31 +16,52 @@
 </div>
 <div class="card">
   {% if txns %}
-  <table>
-    <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Type</th><th>Source</th><th style="text-align:right;">Amount</th><th></th></tr></thead>
-    <tbody>
-    {% for t in txns %}
-      <tr>
-        <td>{{ t.date.strftime('%d %b %Y') }}</td>
-        <td>
-          <div style="font-weight: 500;">{{ t.merchant or '—' }}</div>
-          {% if t.reference %}
-          <div style="font-size: 10px; color: var(--ink-soft); opacity: 0.85;">Ref: {{ t.reference }}</div>
-          {% endif %}
-        </td>
-        <td>{{ t.category }}</td>
-        <td><span class="pill pill-{{ t.type }}">{{ t.type }}</span></td>
-        <td><span class="pill pill-source">{{ t.source }}</span></td>
-        <td style="text-align:right; font-weight:600;">₹{{ "%.2f"|format(t.amount) }}</td>
-        <td>
-          <form method="POST" action="{{ url_for('delete_transaction', txn_id=t.id) }}" onsubmit="return confirm('Delete this transaction?');">
-            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-          </form>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <div style="overflow-x: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Details / Merchant</th>
+          <th>Ref No</th>
+          <th style="text-align:right; color: var(--coral);">₹ Debit</th>
+          <th style="text-align:right; color: var(--emerald);">₹ Credit</th>
+          <th style="text-align:right;">Balance</th>
+          <th>Category</th>
+          <th>Source</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in txns %}
+        <tr>
+          <td style="white-space: nowrap;">{{ t.date.strftime('%d/%m/%Y') }}</td>
+          <td>
+            <div style="font-weight: 500; font-size: 13px;">{{ t.merchant or '—' }}</div>
+          </td>
+          <td>
+            <span style="font-size: 11px; font-family: monospace; color: var(--ink-soft);">{{ t.reference or '-' }}</span>
+          </td>
+          <td style="text-align:right; font-weight:600; color: var(--coral);">
+            {% if t.type == 'expense' %}₹{{ "%.2f"|format(t.amount) }}{% else %}-{% endif %}
+          </td>
+          <td style="text-align:right; font-weight:600; color: var(--emerald);">
+            {% if t.type == 'income' %}₹{{ "%.2f"|format(t.amount) }}{% else %}-{% endif %}
+          </td>
+          <td style="text-align:right; font-size: 13px; color: var(--ink-soft);">
+            {% if t.running_balance is not none %}₹{{ "%.2f"|format(t.running_balance) }}{% else %}-{% endif %}
+          </td>
+          <td><span style="font-size: 12.5px;">{{ t.category }}</span></td>
+          <td><span class="pill pill-source">{{ t.source }}</span></td>
+          <td>
+            <form method="POST" action="{{ url_for('delete_transaction', txn_id=t.id) }}" onsubmit="return confirm('Delete this transaction?');">
+              <button type="submit" class="btn btn-danger btn-sm" style="padding: 3px 8px; font-size: 11px;">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <div class="empty-state">
     <span class="big-num">≡</span>

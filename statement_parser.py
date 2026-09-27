@@ -2,8 +2,8 @@
 Universal Bank Statement PDF Parser module.
 
 Supports SBI, HDFC, ICICI, Axis, PayTM, Kotak, PNB, Canara, Bank of Baroda, and generic bank statement PDFs.
-Uses flexible token extraction to handle varying table layouts, value dates, running balances, credit/debit indicators,
-and integer/decimal amount formats.
+Uses flexible multi-column token extraction to handle Value/Post dates, details, UPI Ref Nos, Debit/Credit columns,
+and Running Balances.
 """
 import re
 from datetime import datetime, date
@@ -18,24 +18,22 @@ CATEGORY_KEYWORDS = {
     "Shopping": ["amazon", "flipkart", "myntra", "meesho", "mall", "fashion", "apparel", "electronics", "retail", "outlet", "zara", "h&m", "trends", "croma", "reliance", "nykaa"],
     "Health": ["pharmacy", "hospital", "clinic", "medical", "drug", "apollo", "1mg", "pharmeasy", "medplus", "pathology", "lab", "health"],
     "Entertainment": ["cinema", "movie", "theatre", "theater", "multiplex", "games", "netflix", "spotify", "hotstar", "bookmyshow", "steam", "gaming"],
-    "Salary": ["salary", "stipend", "payroll", "employer", "bonus", "dividend", "interest credit", "neft cr", "rtgs cr", "imps cr", "ach cr"],
+    "Salary": ["salary", "stipend", "payroll", "employer", "bonus", "dividend", "interest credit", "neft cr", "rtgs cr", "imps cr", "ach cr", "dep tfr"],
 }
 
 # Date regexes matching all common global & Indian statement date formats
 DATE_PATTERNS = [
-    # 15/09/2024, 15-09-2024, 15.09.2024, 15/09/24, 2024-09-15
     (re.compile(r"\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\b"), ["%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%d/%m/%y", "%d-%m-%y", "%d.%m.%y", "%Y-%m-%d", "%m/%d/%Y"]),
-    # 15-SEP-2024, 15-Sep-24, 15 SEP 2024, 15 Sep 24
     (re.compile(r"\b(\d{1,2}[\/\-\.\s]+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\/\-\.\s]+\d{2,4})\b", re.IGNORECASE), ["%d-%b-%Y", "%d-%b-%y", "%d %b %Y", "%d %b %y", "%d-%B-%Y", "%d %B %Y"]),
 ]
 
-# Amount matching regex: numbers like 1,500.00 or 1500.00 or 450.00
+# Decimal amount matching regex
 AMOUNT_REGEX = re.compile(r"(?:rs\.?|inr|₹|\$)?\s*([+-]?\s*[\d,]+\.\d{2})\b", re.IGNORECASE)
-# Fallback integer amount regex for integers >= 10: e.g. 500 or 1200 (excluding 10-12 digit account/ref numbers)
 INT_AMOUNT_REGEX = re.compile(r"\b([1-9]\d{1,5})\b")
+UPI_REF_REGEX = re.compile(r"\b(\d{12})\b")
 
-CREDIT_INDICATORS = [" credit", " cr", " deposit", "received", "refund", "salary", "cashback", "interest paid", "by transfer", "neft cr", "rtgs cr", "imps cr", "ach cr", "credit card refund"]
-DEBIT_INDICATORS = [" debit", " dr", " withdrawal", "pos", "upi/", "to transfer", "paytm", "charges", "atm", "purchase", "debited"]
+CREDIT_INDICATORS = ["dep tfr", "upi/cr", " credit", " cr", " deposit", "received", "refund", "salary", "cashback", "interest paid", "by transfer", "neft cr", "rtgs cr", "imps cr", "ach cr"]
+DEBIT_INDICATORS = ["wdl tfr", "upi/dr", "atm wdl", " debit", " dr", " withdrawal", "pos", "to transfer", "paytm", "charges", "atm", "purchase", "debited"]
 
 CLEAN_AMOUNT_REGEX = re.compile(r"[^\d.]")
 SPACE_REGEX = re.compile(r"\s+")
@@ -122,12 +120,13 @@ def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
                     "transactions": [],
                     "total_parsed": 0,
                 }
+
         full_text_lines = []
         for page in reader.pages:
             text = page.extract_text() or ""
             for line in text.splitlines():
                 stripped = line.strip()
-                if stripped and not stripped.lower().startswith(("page ", "statement of account", "account summary", "opening balance", "closing balance")):
+                if stripped and not stripped.lower().startswith(("page ", "value date", "statement of account", "account summary", "opening balance", "closing balance")):
                     full_text_lines.append(stripped)
 
         if not full_text_lines:
@@ -140,7 +139,6 @@ def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
 
         parsed_txns = []
 
-        # Strategy 1 & 2: Single-line and Adjacent-line Token Scanner
         i = 0
         n = len(full_text_lines)
         while i < n:
@@ -148,31 +146,32 @@ def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
             date_str, d_start, d_end = _find_date_in_text(line)
 
             if not date_str and i + 1 < n:
-                # Check sliding window: maybe line i has date and line i+1 has transaction description/amount
                 combined_line = f"{line} {full_text_lines[i+1]}"
                 date_str, d_start, d_end = _find_date_in_text(combined_line)
                 if date_str:
                     line = combined_line
-                    i += 1  # consume next line
+                    i += 1
 
             if date_str:
-                # Find all decimal amounts in the line
                 amount_matches = AMOUNT_REGEX.findall(line)
                 
                 if not amount_matches:
-                    # Fallback to integer amounts if decimal amounts not found
                     int_matches = INT_AMOUNT_REGEX.findall(line)
-                    # Filter out integers that look like years or small day/month numbers or long account numbers
                     valid_ints = [m for m in int_matches if m != date_str and len(m) <= 6 and float(m) >= 10]
                     if valid_ints:
                         amount_matches = valid_ints
 
                 if amount_matches:
-                    # If multiple amounts exist on the same line (e.g., Transaction Amount + Running Balance)
-                    # In 3-column bank statements: [Date] [Description] [Amount] [Balance]
-                    # The first or second number is the transaction amount.
-                    raw_amount = amount_matches[0]
-                    
+                    running_balance = None
+                    if len(amount_matches) >= 2:
+                        try:
+                            running_balance = round(float(CLEAN_AMOUNT_REGEX.sub("", amount_matches[-1])), 2)
+                        except ValueError:
+                            running_balance = None
+                        raw_amount = amount_matches[-2]
+                    else:
+                        raw_amount = amount_matches[0]
+
                     try:
                         clean_amt = CLEAN_AMOUNT_REGEX.sub("", raw_amount)
                         amount_val = float(clean_amt)
@@ -182,26 +181,27 @@ def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
                     if amount_val > 0:
                         line_lower = line.lower()
                         
-                        # Determine Credit vs Debit
                         if any(k in line_lower for k in CREDIT_INDICATORS):
                             txn_type = "income"
                         elif any(k in line_lower for k in DEBIT_INDICATORS) or "-" in raw_amount:
                             txn_type = "expense"
                         else:
-                            txn_type = "expense"  # Default assumption for bank debits
+                            txn_type = "expense"
 
-                        # Extract description / merchant by stripping date & amount matches
+                        # Extract UPI Reference Number if present
+                        upi_ref_match = UPI_REF_REGEX.search(line)
+                        ref_no = upi_ref_match.group(1) if upi_ref_match else ""
+
+                        # Clean merchant / details text
                         desc = line
                         for am in amount_matches:
                             desc = desc.replace(am, " ")
                         desc = desc.replace(date_str, " ")
-                        
-                        # Strip common clutter words like 'Dr', 'Cr', 'INR', 'Rs.'
                         desc = re.sub(r"\b(?:dr|cr|inr|rs\.?|balance|bal)\b", "", desc, flags=re.IGNORECASE)
                         merchant_clean = SPACE_REGEX.sub(" ", desc).strip()
                         
-                        if len(merchant_clean) > 120:
-                            merchant_clean = merchant_clean[:120]
+                        if len(merchant_clean) > 160:
+                            merchant_clean = merchant_clean[:160]
 
                         category = _guess_category(merchant_clean.lower())
                         iso_date = parse_date_string(date_str)
@@ -212,6 +212,8 @@ def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
                             "type": txn_type,
                             "amount": round(amount_val, 2),
                             "category": category,
+                            "reference": ref_no,
+                            "running_balance": running_balance,
                         })
 
             i += 1

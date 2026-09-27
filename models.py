@@ -53,6 +53,7 @@ class Transaction(db.Model):
     date = db.Column(db.Date, default=dt.date.today, nullable=False)
     source = db.Column(db.String(20), default="manual")  # manual | ocr | ai | statement
     reference = db.Column(db.String(100), nullable=True, index=True)  # UPI Ref No for duplicate checks
+    running_balance = db.Column(db.Float, nullable=True)  # Statement running balance
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 
     def to_dict(self):
@@ -66,6 +67,7 @@ class Transaction(db.Model):
             "date": self.date.isoformat(),
             "source": self.source,
             "reference": self.reference,
+            "running_balance": self.running_balance,
         }
 
 

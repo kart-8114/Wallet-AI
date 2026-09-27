@@ -65,15 +65,20 @@ def create_app():
             try:
                 if "postgres" in engine_name:
                     db.session.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reference VARCHAR(100);"))
+                    db.session.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS running_balance FLOAT;"))
                     db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS mpin_hash VARCHAR(255);"))
                     db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS theme VARCHAR(10) DEFAULT 'light';"))
                     db.session.commit()
                 elif "sqlite" in engine_name:
                     try:
                         db.session.execute(text("ALTER TABLE transactions ADD COLUMN reference VARCHAR(100);"))
-                        db.session.commit()
                     except Exception:
-                        db.session.rollback()
+                        pass
+                    try:
+                        db.session.execute(text("ALTER TABLE transactions ADD COLUMN running_balance FLOAT;"))
+                    except Exception:
+                        pass
+                    db.session.commit()
             except Exception as mig_err:
                 print(f"AUTO-MIGRATION NOTICE: {mig_err}")
                 db.session.rollback()
@@ -478,6 +483,11 @@ def register_routes(flask_app):
                 type_val = request.form.get(f"type_{i}") or "expense"
                 reference = (request.form.get(f"reference_{i}") or "").strip() or None
                 tag = (request.form.get(f"tag_{i}") or "").strip()
+                raw_bal = request.form.get(f"running_balance_{i}")
+                try:
+                    running_bal = float(raw_bal) if raw_bal is not None and raw_bal != "" else None
+                except ValueError:
+                    running_bal = None
 
                 # Duplicate Check
                 duplicate = None
@@ -509,6 +519,7 @@ def register_routes(flask_app):
                     date=txn_date,
                     source="statement",
                     reference=reference,
+                    running_balance=running_bal,
                 ))
 
         if txns_to_add:
