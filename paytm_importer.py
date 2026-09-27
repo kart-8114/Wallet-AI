@@ -34,9 +34,18 @@ CATEGORY_MAP = {
 }
 
 
-def extract_pdf_text(pdf_path: str) -> str:
+def extract_pdf_text(pdf_path: str, password: str = "") -> str:
     """Extract text from every page of the Paytm PDF using fitz."""
     doc = fitz.open(pdf_path)
+    if doc.is_encrypted:
+        if password:
+            if not doc.authenticate(password):
+                doc.close()
+                raise ValueError("INCORRECT_PASSWORD: The PDF password provided is incorrect.")
+        else:
+            doc.close()
+            raise ValueError("PASSWORD_REQUIRED: This PDF statement is password-protected. Please enter your PDF password.")
+
     pages = []
     for page in doc:
         pages.append(page.get_text("text") or "")
@@ -194,9 +203,9 @@ def parse_transaction_block(block: str, start_year: int, end_year: int):
     }
 
 
-def parse_paytm_statement(pdf_path: str) -> dict:
+def parse_paytm_statement(pdf_path: str, password: str = "") -> dict:
     try:
-        text = extract_pdf_text(pdf_path)
+        text = extract_pdf_text(pdf_path, password=password)
         if not text or "paytm" not in text.lower():
             return {
                 "ok": False,

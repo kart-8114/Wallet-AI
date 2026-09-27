@@ -15,6 +15,14 @@
       <span id="dropzoneText" style="font-weight: 600; color: var(--ink);">Click to select a PDF statement, or drag one here</span>
       <input type="file" id="statement" name="statement" accept="application/pdf" style="display:none;" required>
     </label>
+
+    <div style="margin-top: 16px;">
+      <label for="pdf_password" style="font-size: 13.5px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--ink);">
+        🔑 PDF Password <span style="font-weight: 400; color: var(--ink-soft); font-size: 12.5px;">(Required only if your PDF is password-protected)</span>
+      </label>
+      <input type="password" id="pdf_password" name="pdf_password" placeholder="e.g. Account Number / Date of Birth / PAN" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--surface-1); color: var(--ink);">
+    </div>
+
     <div style="height: 20px;"></div>
     <button type="submit" class="btn btn-primary btn-block">Parse Statement Transactions</button>
   </form>

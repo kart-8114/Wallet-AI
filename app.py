@@ -413,12 +413,14 @@ def register_routes(flask_app):
                 flash("Only PDF files (.pdf) are supported.", "danger")
                 return redirect(url_for("upload_statement"))
 
+            pdf_password = request.form.get("pdf_password", "").strip()
+
             filename = secure_filename(file.filename)
             path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_stmt_{int(datetime.utcnow().timestamp())}_{filename}")
             file.save(path)
 
             try:
-                res = extract_transactions_from_pdf(path)
+                res = extract_transactions_from_pdf(path, password=pdf_password)
             finally:
                 if os.path.exists(path):
                     try:

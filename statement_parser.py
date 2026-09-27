@@ -78,17 +78,50 @@ def _find_date_in_text(text: str):
     return None, -1, -1
 
 
-def extract_transactions_from_pdf(pdf_path: str) -> dict:
+def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
     try:
         # First check if it is a Paytm statement
         try:
-            paytm_res = parse_paytm_statement(pdf_path)
+            paytm_res = parse_paytm_statement(pdf_path, password=password)
             if paytm_res and paytm_res.get("ok") and paytm_res.get("total_parsed", 0) > 0:
                 return paytm_res
+        except ValueError as val_err:
+            msg = str(val_err)
+            if "PASSWORD_REQUIRED" in msg:
+                return {
+                    "ok": False,
+                    "error": "This bank statement PDF is password-protected. Please enter your PDF password in the password field below and try again.",
+                    "transactions": [],
+                    "total_parsed": 0,
+                }
+            if "INCORRECT_PASSWORD" in msg:
+                return {
+                    "ok": False,
+                    "error": "Incorrect PDF password. Please check your password and try again.",
+                    "transactions": [],
+                    "total_parsed": 0,
+                }
         except Exception:
             pass
 
         reader = PdfReader(pdf_path)
+        if reader.is_encrypted:
+            if password:
+                dec_res = reader.decrypt(password)
+                if dec_res == 0:
+                    return {
+                        "ok": False,
+                        "error": "Incorrect PDF password. Please check your password and try again.",
+                        "transactions": [],
+                        "total_parsed": 0,
+                    }
+            else:
+                return {
+                    "ok": False,
+                    "error": "This bank statement PDF is password-protected. Please enter your PDF password in the password field below and try again.",
+                    "transactions": [],
+                    "total_parsed": 0,
+                }
         full_text_lines = []
         for page in reader.pages:
             text = page.extract_text() or ""
