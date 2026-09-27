@@ -307,6 +307,152 @@ def register_routes(flask_app):
             budget_status=budget_status,
         )
 
+    @flask_app.route("/api/dashboard/stats")
+    @login_required
+    def api_dashboard_stats():
+        user = current_user()
+        today = date.today()
+        last_30 = today - timedelta(days=30)
+
+        txns = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
+        recent = [t for t in txns if t.date >= last_30]
+        total_expense = sum(t.amount for t in recent if t.type == "expense")
+        total_income = sum(t.amount for t in recent if t.type == "income")
+        balance = total_income - total_expense
+
+        by_category = {}
+        for t in recent:
+            if t.type == "expense":
+                by_category[t.category] = by_category.get(t.category, 0) + t.amount
+
+        user_goals = Goal.query.filter_by(user_id=user.id).all()
+        user_budgets = Budget.query.filter_by(user_id=user.id).all()
+        budget_status = []
+        for b in user_budgets:
+            spent = sum(t.amount for t in recent if t.type == "expense" and t.category == b.category)
+            budget_status.append({
+                "category": b.category,
+                "limit": b.monthly_limit,
+                "spent": spent,
+                "pct": min(100, round((spent / b.monthly_limit) * 100, 1)) if b.monthly_limit else 0,
+            })
+
+        recent_data = [
+            {
+                "id": t.id,
+                "date": t.date.strftime('%d %b'),
+                "merchant": t.merchant or t.category,
+                "category": t.category,
+                "type": t.type,
+                "amount": t.amount,
+                "reference": t.reference or "",
+            }
+            for t in txns[:8]
+        ]
+
+        goals_data = [
+            {
+                "id": g.id,
+                "title": g.title,
+                "saved_amount": g.saved_amount,
+                "target_amount": g.target_amount,
+                "progress_pct": g.progress_pct,
+            }
+            for g in user_goals
+        ]
+
+        return jsonify({
+            "ok": True,
+            "balance": round(balance, 2),
+            "total_expense": round(total_expense, 2),
+            "total_income": round(total_income, 2),
+            "by_category": {k: round(v, 2) for k, v in by_category.items()},
+            "recent_txns": recent_data,
+            "budget_status": budget_status,
+            "goals": goals_data,
+            "updated_at": datetime.utcnow().isoformat(),
+        })
+
+    # ---------- REST APIs for Mobile Integration ----------
+    @flask_app.route("/api/v1/dashboard", methods=["GET"])
+    @login_required
+    def api_v1_dashboard():
+        return api_dashboard_stats()
+
+    @flask_app.route("/api/v1/transactions", methods=["GET", "POST"])
+    @login_required
+    def api_v1_transactions():
+        user = current_user()
+        if request.method == "POST":
+            data = request.json or request.form
+            try:
+                amount = float(data.get("amount", 0))
+            except (TypeError, ValueError):
+                return jsonify({"ok": False, "error": "Invalid transaction amount"}), 400
+
+            if amount <= 0:
+                return jsonify({"ok": False, "error": "Amount must be greater than zero"}), 400
+
+            raw_date = data.get("date") or date.today().isoformat()
+            try:
+                txn_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+            except ValueError:
+                txn_date = date.today()
+
+            merchant = (data.get("merchant") or data.get("description") or "API Transaction").strip()
+            category = data.get("category") or "Other"
+            type_val = data.get("type") or "expense"
+            reference = (data.get("reference") or data.get("upi_ref") or "").strip() or None
+
+            # Automatic Duplicate Detection
+            duplicate = None
+            if reference:
+                duplicate = Transaction.query.filter_by(user_id=user.id, reference=reference).first()
+            if not duplicate:
+                duplicate = Transaction.query.filter_by(
+                    user_id=user.id,
+                    date=txn_date,
+                    amount=amount,
+                    merchant=merchant[:160],
+                    type=type_val if type_val in ["income", "expense"] else "expense"
+                ).first()
+
+            if duplicate:
+                return jsonify({
+                    "ok": False,
+                    "duplicate": True,
+                    "message": "Duplicate transaction detected and skipped.",
+                    "transaction": duplicate.to_dict()
+                }), 409
+
+            t = Transaction(
+                user_id=user.id,
+                type=type_val if type_val in ["income", "expense"] else "expense",
+                category=category if category in CATEGORIES else "Other",
+                merchant=merchant[:160],
+                amount=amount,
+                note=(data.get("note") or "Added via Mobile API")[:255],
+                date=txn_date,
+                source=data.get("source") or "api",
+                reference=reference,
+            )
+            db.session.add(t)
+            db.session.commit()
+
+            return jsonify({
+                "ok": True,
+                "message": "Transaction added successfully.",
+                "transaction": t.to_dict()
+            }), 201
+
+        # GET method: Return user transactions
+        txns = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
+        return jsonify({
+            "ok": True,
+            "count": len(txns),
+            "transactions": [t.to_dict() for t in txns]
+        })
+
     # ---------- Transactions ----------
     @flask_app.route("/transactions")
     @login_required
