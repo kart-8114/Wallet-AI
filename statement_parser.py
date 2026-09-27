@@ -9,6 +9,7 @@ import re
 from datetime import datetime, date
 from pypdf import PdfReader
 from paytm_importer import parse_paytm_statement
+from sbi_importer import parse_sbi_statement
 
 CATEGORY_KEYWORDS = {
     "Food": ["swiggy", "zomato", "restaurant", "cafe", "food", "kitchen", "pizza", "burger", "coffee", "diner", "eatery", "bakery", "mcdonald", "starbucks", "kfc", "domino", "hotel"],
@@ -78,27 +79,18 @@ def _find_date_in_text(text: str):
 
 def extract_transactions_from_pdf(pdf_path: str, password: str = "") -> dict:
     try:
-        # First check if it is a Paytm statement
+        # First check if it is a Paytm or SBI statement
         try:
             paytm_res = parse_paytm_statement(pdf_path, password=password)
             if paytm_res and paytm_res.get("ok") and paytm_res.get("total_parsed", 0) > 0:
                 return paytm_res
-        except ValueError as val_err:
-            msg = str(val_err)
-            if "PASSWORD_REQUIRED" in msg:
-                return {
-                    "ok": False,
-                    "error": "This bank statement PDF is password-protected. Please enter your PDF password in the password field below and try again.",
-                    "transactions": [],
-                    "total_parsed": 0,
-                }
-            if "INCORRECT_PASSWORD" in msg:
-                return {
-                    "ok": False,
-                    "error": "Incorrect PDF password. Please check your password and try again.",
-                    "transactions": [],
-                    "total_parsed": 0,
-                }
+        except Exception:
+            pass
+
+        try:
+            sbi_res = parse_sbi_statement(pdf_path, password=password)
+            if sbi_res and sbi_res.get("ok") and sbi_res.get("total_parsed", 0) > 0:
+                return sbi_res
         except Exception:
             pass
 

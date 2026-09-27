@@ -6,7 +6,10 @@
   <h2>All transactions</h2>
   <div style="display: flex; gap: 8px; align-items: center;">
     {% if txns %}
-    <form method="POST" action="{{ url_for('clear_all_transactions') }}" onsubmit="return confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.');">
+    <form method="POST" action="{{ url_for('clear_statement_imports') }}" onsubmit="return confirm('Purge all statement-imported transactions? Your manual entries will not be deleted.');" style="display:inline-block;">
+      <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--coral);">Purge Statement Imports</button>
+    </form>
+    <form method="POST" action="{{ url_for('clear_all_transactions') }}" onsubmit="return confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.');" style="display:inline-block;">
       <button type="submit" class="btn btn-danger btn-sm">All Clear</button>
     </form>
     {% endif %}

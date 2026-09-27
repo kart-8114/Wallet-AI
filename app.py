@@ -1,6 +1,7 @@
 import io
 import csv
 import os
+import re
 import random
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -453,6 +454,106 @@ def register_routes(flask_app):
             "transactions": [t.to_dict() for t in txns]
         })
 
+    @flask_app.route("/api/v1/sms/webhook", methods=["POST"])
+    @login_required
+    def api_v1_sms_webhook():
+        user = current_user()
+        data = request.json or request.form or {}
+        sms_text = (data.get("sms_body") or data.get("text") or "").strip()
+        sender = (data.get("sender") or "").strip()
+
+        if not sms_text:
+            return jsonify({"ok": False, "error": "sms_body parameter is required"}), 400
+
+        # Extract amount from SMS
+        amt_match = re.search(r"(?:rs\.?|inr|₹|\$)\s*([\d,]+(?:\.\d{2})?)", sms_text, re.IGNORECASE)
+        if not amt_match:
+            amt_match = re.search(r"\b([\d,]+\.\d{2})\b", sms_text)
+
+        if not amt_match:
+            return jsonify({"ok": False, "error": "Could not parse monetary amount from SMS body"}), 400
+
+        try:
+            amount_val = float(amt_match.group(1).replace(",", ""))
+        except ValueError:
+            return jsonify({"ok": False, "error": "Invalid amount in SMS"}), 400
+
+        if amount_val <= 0:
+            return jsonify({"ok": False, "error": "Amount must be positive"}), 400
+
+        # Determine type
+        sms_lower = sms_text.lower()
+        if any(k in sms_lower for k in ["credited", "received", "deposited", "added"]):
+            txn_type = "income"
+        else:
+            txn_type = "expense"
+
+        # Extract UPI Ref No if present
+        upi_match = re.search(r"\b(\d{12})\b", sms_text)
+        reference = upi_match.group(1) if upi_match else None
+
+        # Extract Merchant
+        merchant = f"SMS: {sender}" if sender else "SMS Transaction"
+        m_match = re.search(r"(?:to|at|vpa|paid to|from)\s+([A-Za-z0-9\s\-]{3,30})", sms_text, re.IGNORECASE)
+        if m_match:
+            merchant = m_match.group(1).strip()
+
+        # Category
+        category = "Other"
+        for cat, keywords in {
+            "Food": ["swiggy", "zomato", "restaurant", "food", "kitchen", "cafe"],
+            "Groceries": ["blinkit", "zepto", "instamart", "bigbasket", "dmart", "mart"],
+            "Bills": ["electricity", "recharge", "bill", "airtel", "jio", "vi", "utility"],
+            "Transport": ["uber", "ola", "rapido", "fuel", "petrol", "fastag", "metro"],
+            "Shopping": ["amazon", "flipkart", "myntra", "meesho", "mall"],
+            "Health": ["pharmacy", "hospital", "clinic", "apollo", "1mg"],
+        }.items():
+            if any(k in sms_lower for k in keywords):
+                category = cat
+                break
+
+        # Duplicate Check
+        duplicate = None
+        if reference:
+            duplicate = Transaction.query.filter_by(user_id=user.id, reference=reference).first()
+
+        if not duplicate:
+            duplicate = Transaction.query.filter_by(
+                user_id=user.id,
+                date=date.today(),
+                amount=amount_val,
+                merchant=merchant[:160],
+                type=txn_type
+            ).first()
+
+        if duplicate:
+            return jsonify({
+                "ok": False,
+                "duplicate": True,
+                "message": "Duplicate SMS transaction skipped.",
+                "transaction": duplicate.to_dict()
+            }), 409
+
+        t = Transaction(
+            user_id=user.id,
+            type=txn_type,
+            category=category,
+            merchant=merchant[:160],
+            amount=amount_val,
+            note=f"Auto-logged from Android SMS ({sender})",
+            date=date.today(),
+            source="sms",
+            reference=reference,
+        )
+        db.session.add(t)
+        db.session.commit()
+
+        return jsonify({
+            "ok": True,
+            "message": "SMS transaction auto-logged successfully.",
+            "transaction": t.to_dict()
+        }), 201
+
     # ---------- Transactions ----------
     @flask_app.route("/transactions")
     @login_required
@@ -506,6 +607,15 @@ def register_routes(flask_app):
         deleted_count = Transaction.query.filter_by(user_id=user.id).delete(synchronize_session=False)
         db.session.commit()
         flash(f"All transactions cleared ({deleted_count} deleted).", "info")
+        return redirect(url_for("transactions"))
+
+    @flask_app.route("/transactions/clear-statement-imports", methods=["POST"])
+    @login_required
+    def clear_statement_imports():
+        user = current_user()
+        deleted_count = Transaction.query.filter_by(user_id=user.id, source="statement").delete(synchronize_session=False)
+        db.session.commit()
+        flash(f"Purged {deleted_count} statement-imported transaction records.", "info")
         return redirect(url_for("transactions"))
 
     # ---------- OCR Receipt Scanner ----------
