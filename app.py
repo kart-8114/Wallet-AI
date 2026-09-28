@@ -100,6 +100,16 @@ def create_app():
         except Exception as err:
             print(f"DATABASE INITIALIZATION WARNING: Could not auto-initialize DB on boot: {err}")
 
+    @flask_app.errorhandler(405)
+    def method_not_allowed(e):
+        flash("Action not allowed or session expired. Redirecting...", "warning")
+        return redirect(url_for("home"))
+
+    @flask_app.errorhandler(404)
+    def page_not_found(e):
+        flash("The requested page was not found. Redirecting to home.", "info")
+        return redirect(url_for("home"))
+
     register_routes(flask_app)
     return flask_app
 
@@ -590,29 +600,35 @@ def register_routes(flask_app):
             return redirect(url_for("transactions"))
         return render_template("add_expense.html", today=date.today().isoformat())
 
-    @flask_app.route("/transactions/<int:txn_id>/delete", methods=["POST"])
+    @flask_app.route("/transactions/<int:txn_id>/delete", methods=["GET", "POST"])
     @login_required
     def delete_transaction(txn_id):
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("transactions"))
         t = Transaction.query.filter_by(id=txn_id, user_id=user.id).first_or_404()
         db.session.delete(t)
         db.session.commit()
         flash("Transaction deleted.", "info")
         return redirect(url_for("transactions"))
 
-    @flask_app.route("/transactions/clear-all", methods=["POST"])
+    @flask_app.route("/transactions/clear-all", methods=["GET", "POST"])
     @login_required
     def clear_all_transactions():
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("transactions"))
         deleted_count = Transaction.query.filter_by(user_id=user.id).delete(synchronize_session=False)
         db.session.commit()
         flash(f"All transactions cleared ({deleted_count} deleted).", "info")
         return redirect(url_for("transactions"))
 
-    @flask_app.route("/transactions/clear-statement-imports", methods=["POST"])
+    @flask_app.route("/transactions/clear-statement-imports", methods=["GET", "POST"])
     @login_required
     def clear_statement_imports():
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("transactions"))
         deleted_count = Transaction.query.filter_by(user_id=user.id, source="statement").delete(synchronize_session=False)
         db.session.commit()
         flash(f"Purged {deleted_count} statement-imported transaction records.", "info")
@@ -634,10 +650,12 @@ def register_routes(flask_app):
             result = extract_receipt_fields(path)
         return render_template("scan_receipt.html", result=result, today=date.today().isoformat())
 
-    @flask_app.route("/scan-receipt/confirm", methods=["POST"])
+    @flask_app.route("/scan-receipt/confirm", methods=["GET", "POST"])
     @login_required
     def confirm_receipt():
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("scan_receipt"))
         try:
             amount = float(request.form.get("amount"))
         except (TypeError, ValueError):
@@ -706,10 +724,12 @@ def register_routes(flask_app):
 
         return render_template("upload_statement.html")
 
-    @flask_app.route("/confirm-statement", methods=["POST"])
+    @flask_app.route("/confirm-statement", methods=["GET", "POST"])
     @login_required
     def confirm_statement():
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("upload_statement"))
         try:
             total_count = int(request.form.get("total_count", 0))
         except ValueError:
@@ -861,10 +881,12 @@ def register_routes(flask_app):
             })
         return render_template("budgets.html", rows=rows)
 
-    @flask_app.route("/budgets/<int:budget_id>/delete", methods=["POST"])
+    @flask_app.route("/budgets/<int:budget_id>/delete", methods=["GET", "POST"])
     @login_required
     def delete_budget(budget_id):
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("budgets"))
         b = Budget.query.filter_by(id=budget_id, user_id=user.id).first_or_404()
         db.session.delete(b)
         db.session.commit()
@@ -895,10 +917,12 @@ def register_routes(flask_app):
         rows = Goal.query.filter_by(user_id=user.id).all()
         return render_template("goals.html", goals=rows)
 
-    @flask_app.route("/goals/<int:goal_id>/contribute", methods=["POST"])
+    @flask_app.route("/goals/<int:goal_id>/contribute", methods=["GET", "POST"])
     @login_required
     def contribute_goal(goal_id):
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("goals"))
         g = Goal.query.filter_by(id=goal_id, user_id=user.id).first_or_404()
         try:
             amt = float(request.form.get("amount"))
@@ -910,10 +934,12 @@ def register_routes(flask_app):
         flash(f"Added ₹{amt:,.2f} to {g.title}.", "success")
         return redirect(url_for("goals"))
 
-    @flask_app.route("/goals/<int:goal_id>/delete", methods=["POST"])
+    @flask_app.route("/goals/<int:goal_id>/delete", methods=["GET", "POST"])
     @login_required
     def delete_goal(goal_id):
         user = current_user()
+        if request.method == "GET":
+            return redirect(url_for("goals"))
         g = Goal.query.filter_by(id=goal_id, user_id=user.id).first_or_404()
         db.session.delete(g)
         db.session.commit()
