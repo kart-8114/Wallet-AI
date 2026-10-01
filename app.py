@@ -3,7 +3,7 @@ import csv
 import os
 import re
 import random
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from functools import wraps
 
 from flask import (Flask, render_template, request, redirect, url_for,
@@ -402,7 +402,7 @@ def register_routes(flask_app):
             "recent_txns": recent_data,
             "budget_status": budget_status,
             "goals": goals_data,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         })
 
     # ---------- REST APIs for Mobile Integration ----------
@@ -675,7 +675,7 @@ def register_routes(flask_app):
                 flash("Please choose a receipt image.", "danger")
                 return redirect(url_for("scan_receipt"))
             filename = secure_filename(file.filename)
-            path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_{int(datetime.utcnow().timestamp())}_{filename}")
+            path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_{int(datetime.now(timezone.utc).timestamp())}_{filename}")
             file.save(path)
             result = extract_receipt_fields(path)
         return render_template("scan_receipt.html", result=result, today=date.today().isoformat())
@@ -725,7 +725,7 @@ def register_routes(flask_app):
             pdf_password = request.form.get("pdf_password", "").strip()
 
             filename = secure_filename(file.filename)
-            path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_stmt_{int(datetime.utcnow().timestamp())}_{filename}")
+            path = os.path.join(UPLOAD_DIR, f"{session['user_id']}_stmt_{int(datetime.now(timezone.utc).timestamp())}_{filename}")
             file.save(path)
 
             try:

@@ -3,6 +3,10 @@ from extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
+def utcnow():
+    return dt.datetime.now(dt.timezone.utc)
+
+
 class User(db.Model):
     __tablename__ = "users"
 
@@ -21,7 +25,7 @@ class User(db.Model):
     otp_verified = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
     theme = db.Column(db.String(10), default="light")
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     transactions = db.relationship("Transaction", backref="user", lazy=True, cascade="all, delete-orphan")
     budgets = db.relationship("Budget", backref="user", lazy=True, cascade="all, delete-orphan")
@@ -52,10 +56,10 @@ class Transaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(255), nullable=True)
     date = db.Column(db.Date, default=dt.date.today, nullable=False)
-    source = db.Column(db.String(20), default="manual")  # manual | ocr | ai | statement
+    source = db.Column(db.String(20), default="manual")  # manual | ocr | ai | statement | sms
     reference = db.Column(db.String(100), nullable=True, index=True)  # UPI Ref No for duplicate checks
     running_balance = db.Column(db.Float, nullable=True)  # Statement running balance
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     def to_dict(self):
         return {
@@ -79,7 +83,7 @@ class Budget(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     category = db.Column(db.String(60), nullable=False)
     monthly_limit = db.Column(db.Float, nullable=False)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Goal(db.Model):
@@ -91,7 +95,7 @@ class Goal(db.Model):
     target_amount = db.Column(db.Float, nullable=False)
     saved_amount = db.Column(db.Float, default=0.0)
     target_date = db.Column(db.Date, nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     @property
     def progress_pct(self):
@@ -108,4 +112,4 @@ class BankAccount(db.Model):
     bank_name = db.Column(db.String(100), default="Primary Bank Account")
     account_number_last4 = db.Column(db.String(4), nullable=True)
     current_balance = db.Column(db.Float, default=0.0)
-    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)

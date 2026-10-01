@@ -50,6 +50,7 @@ class TestWalletAISystem(unittest.TestCase):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+            db.engine.dispose()
 
     # 1. SBI Debit Transaction Parsing
     def test_sbi_debit_transaction(self):
