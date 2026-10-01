@@ -1,5 +1,5 @@
 """
-Comprehensive Test Suite for Wallet AI Architecture & Statement Parsers.
+Comprehensive Test Suite for Wallet AI Architecture, Statement Parsers & AI Budget Engine.
 
 Verifies:
 1. SBI Debit Transaction
@@ -15,14 +15,20 @@ Verifies:
 11. 30-Day Expense Calculation
 12. 30-Day Income Calculation
 13. Independent Current Balance Calculation
+14. AI Assistant "make my budgets" Prompt & Database Creation
+15. AI Assistant "set my food budget to 5000" Prompt Execution
+16. AI Assistant "set food to 5000 and groceries to 3000" Multi-Category Execution
+17. AI Assistant Duplicate Budget Prevention (Updates Existing Category Record)
+18. AI Assistant "how are my budgets doing?" Status Reporting
 """
 import unittest
 from datetime import date, timedelta
 from app import create_app
 from extensions import db
-from models import User, Transaction, BankAccount
+from models import User, Transaction, Budget, BankAccount
 from sbi_importer import extract_sbi_merchant, parse_sbi_statement
 from paytm_importer import parse_transaction_block, detect_transaction_type, normalize_category
+from ai_assistant import generate_reply
 
 
 class TestWalletAISystem(unittest.TestCase):
@@ -123,7 +129,67 @@ class TestWalletAISystem(unittest.TestCase):
 
             self.assertEqual(spent_30d, 100.0)
             self.assertEqual(income_30d, 500.0)
-            self.assertEqual(all_time_balance, 1400.0)  # (500 + 1000) - 100 = 1400
+            self.assertEqual(all_time_balance, 1400.0)
+
+    # 14. AI Assistant "make my budgets" Prompt & Database Creation
+    def test_ai_make_my_budgets(self):
+        with self.app.app_context():
+            u = db.session.get(User, self.user_id)
+            # Add spending
+            t1 = Transaction(user_id=self.user_id, type="expense", category="Food", amount=1200.0, date=date.today())
+            t2 = Transaction(user_id=self.user_id, type="expense", category="Groceries", amount=3500.0, date=date.today())
+            db.session.add_all([t1, t2])
+            db.session.commit()
+
+            reply = generate_reply(u, "make my budgets")
+            self.assertIn("Done! I created your monthly budgets", reply)
+
+            food_b = Budget.query.filter_by(user_id=self.user_id, category="Food").first()
+            groc_b = Budget.query.filter_by(user_id=self.user_id, category="Groceries").first()
+            self.assertIsNotNone(food_b)
+            self.assertIsNotNone(groc_b)
+            self.assertGreater(food_b.monthly_limit, 1200.0)
+            self.assertGreater(groc_b.monthly_limit, 3500.0)
+
+    # 15 & 16. AI Assistant Explicit Category Budget Prompts
+    def test_ai_explicit_budget_prompts(self):
+        with self.app.app_context():
+            u = db.session.get(User, self.user_id)
+            # Single category
+            reply1 = generate_reply(u, "set my food budget to 5000")
+            self.assertIn("updated your monthly budget limits", reply1.lower())
+            food_b = Budget.query.filter_by(user_id=self.user_id, category="Food").first()
+            self.assertEqual(food_b.monthly_limit, 5000.0)
+
+            # Multi category
+            reply2 = generate_reply(u, "set food to 6000 and groceries to 3000")
+            self.assertIn("updated your monthly budget limits", reply2.lower())
+            food_b2 = Budget.query.filter_by(user_id=self.user_id, category="Food").first()
+            groc_b2 = Budget.query.filter_by(user_id=self.user_id, category="Groceries").first()
+            self.assertEqual(food_b2.monthly_limit, 6000.0)
+            self.assertEqual(groc_b2.monthly_limit, 3000.0)
+
+    # 17. AI Assistant Duplicate Budget Prevention (No Duplicate Category Records)
+    def test_ai_no_duplicate_budget_records(self):
+        with self.app.app_context():
+            u = db.session.get(User, self.user_id)
+            generate_reply(u, "make my budgets")
+            count_1 = Budget.query.filter_by(user_id=self.user_id, category="Food").count()
+            self.assertEqual(count_1, 1)
+
+            # Re-run prompt
+            generate_reply(u, "make my budgets")
+            count_2 = Budget.query.filter_by(user_id=self.user_id, category="Food").count()
+            self.assertEqual(count_2, 1)
+
+    # 18. AI Assistant "how are my budgets doing?" Status Reporting
+    def test_ai_budget_status_reporting(self):
+        with self.app.app_context():
+            u = db.session.get(User, self.user_id)
+            generate_reply(u, "set my food budget to 5000")
+            reply = generate_reply(u, "how are my budgets doing?")
+            self.assertIn("Here's how your budgets are doing this month", reply)
+            self.assertIn("Food", reply)
 
 
 if __name__ == "__main__":

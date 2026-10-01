@@ -15,7 +15,7 @@ from extensions import db
 from models import User, Transaction, Budget, Goal, BankAccount
 from ocr import extract_receipt_fields
 from statement_parser import extract_transactions_from_pdf
-from ai_assistant import generate_reply
+from ai_assistant import generate_reply, build_context_summary, auto_create_smart_budgets
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
@@ -889,6 +889,52 @@ def register_routes(flask_app):
         )
 
     # ---------- Budgets ----------
+    @flask_app.route("/api/budgets/create-from-ai", methods=["POST"])
+    @login_required
+    def api_budgets_create_from_ai():
+        user = current_user()
+        data = request.json or request.form or {}
+        items = data.get("budgets") or []
+
+        if not items and ("category" in data and ("limit_amount" in data or "limit" in data)):
+            items = [{"category": data.get("category"), "limit": data.get("limit_amount") or data.get("limit")}]
+
+        if not items:
+            ctx = build_context_summary(user)
+            auto_create_smart_budgets(user, ctx)
+            user_budgets = Budget.query.filter_by(user_id=user.id).all()
+            return jsonify({
+                "success": True,
+                "budgets": [{"category": b.category, "limit": b.monthly_limit} for b in user_budgets]
+            })
+
+        saved_budgets = []
+        for item in items:
+            cat = (item.get("category") or "").strip()
+            try:
+                limit_val = float(item.get("limit") or item.get("limit_amount") or 0)
+            except (TypeError, ValueError):
+                continue
+
+            if not cat or limit_val <= 0:
+                continue
+
+            existing = Budget.query.filter_by(user_id=user.id, category=cat).first()
+            if existing:
+                existing.monthly_limit = limit_val
+            else:
+                b = Budget(user_id=user.id, category=cat, monthly_limit=limit_val)
+                db.session.add(b)
+
+            saved_budgets.append({"category": cat, "limit": limit_val})
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "budgets": saved_budgets
+        })
+
     @flask_app.route("/budgets", methods=["GET", "POST"])
     @login_required
     def budgets():
