@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import text
 
 from extensions import db
-from models import User, Transaction, Budget, Goal
+from models import User, Transaction, Budget, Goal, BankAccount
 from ocr import extract_receipt_fields
 from statement_parser import extract_transactions_from_pdf
 from ai_assistant import generate_reply
@@ -276,6 +276,19 @@ def register_routes(flask_app):
             flash("Invalid email or MPIN.", "danger")
         return render_template("mpin_login.html")
 
+    def _get_user_bank_balance(user, txns):
+        acc = BankAccount.query.filter_by(user_id=user.id).first()
+        if acc and acc.current_balance is not None and acc.current_balance != 0:
+            return acc.current_balance
+
+        stmt_txn = Transaction.query.filter_by(user_id=user.id).filter(Transaction.running_balance.isnot(None)).order_by(Transaction.date.desc(), Transaction.id.desc()).first()
+        if stmt_txn and stmt_txn.running_balance is not None:
+            return stmt_txn.running_balance
+
+        all_income = sum(t.amount for t in txns if t.type == "income")
+        all_expense = sum(t.amount for t in txns if t.type == "expense")
+        return all_income - all_expense
+
     # ---------- Dashboard ----------
     @flask_app.route("/dashboard")
     @login_required
@@ -288,7 +301,7 @@ def register_routes(flask_app):
         recent = [t for t in txns if t.date >= last_30]
         total_expense = sum(t.amount for t in recent if t.type == "expense")
         total_income = sum(t.amount for t in recent if t.type == "income")
-        balance = total_income - total_expense
+        balance = _get_user_bank_balance(user, txns)
 
         by_category = {}
         for t in recent:
@@ -329,7 +342,7 @@ def register_routes(flask_app):
         recent = [t for t in txns if t.date >= last_30]
         total_expense = sum(t.amount for t in recent if t.type == "expense")
         total_income = sum(t.amount for t in recent if t.type == "income")
-        balance = total_income - total_expense
+        balance = _get_user_bank_balance(user, txns)
 
         by_category = {}
         for t in recent:
@@ -556,6 +569,15 @@ def register_routes(flask_app):
             reference=reference,
         )
         db.session.add(t)
+
+        # Update BankAccount balance
+        acc = BankAccount.query.filter_by(user_id=user.id).first()
+        if acc and acc.current_balance is not None:
+            if txn_type == "income":
+                acc.current_balance += amount_val
+            else:
+                acc.current_balance -= amount_val
+
         db.session.commit()
 
         return jsonify({
@@ -800,6 +822,17 @@ def register_routes(flask_app):
 
         if txns_to_add:
             db.session.add_all(txns_to_add)
+
+            # Update BankAccount balance if running balance is available
+            latest_with_bal = next((t for t in sorted(txns_to_add, key=lambda x: x.date, reverse=True) if t.running_balance is not None), None)
+            if latest_with_bal:
+                acc = BankAccount.query.filter_by(user_id=user.id).first()
+                if not acc:
+                    acc = BankAccount(user_id=user.id, current_balance=latest_with_bal.running_balance)
+                    db.session.add(acc)
+                else:
+                    acc.current_balance = latest_with_bal.running_balance
+
             db.session.commit()
         
         imported_count = len(txns_to_add)

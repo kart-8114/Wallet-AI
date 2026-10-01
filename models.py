@@ -26,6 +26,7 @@ class User(db.Model):
     transactions = db.relationship("Transaction", backref="user", lazy=True, cascade="all, delete-orphan")
     budgets = db.relationship("Budget", backref="user", lazy=True, cascade="all, delete-orphan")
     goals = db.relationship("Goal", backref="user", lazy=True, cascade="all, delete-orphan")
+    bank_accounts = db.relationship("BankAccount", backref="user", lazy=True, cascade="all, delete-orphan")
 
     def set_password(self, raw):
         self.password_hash = generate_password_hash(raw)
@@ -97,3 +98,14 @@ class Goal(db.Model):
         if self.target_amount <= 0:
             return 0
         return min(100, round((self.saved_amount / self.target_amount) * 100, 1))
+
+
+class BankAccount(db.Model):
+    __tablename__ = "bank_accounts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    bank_name = db.Column(db.String(100), default="Primary Bank Account")
+    account_number_last4 = db.Column(db.String(4), nullable=True)
+    current_balance = db.Column(db.Float, default=0.0)
+    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
