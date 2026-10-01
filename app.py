@@ -278,16 +278,24 @@ def register_routes(flask_app):
 
     def _get_user_bank_balance(user, txns):
         acc = BankAccount.query.filter_by(user_id=user.id).first()
+        
+        stmt_txn = Transaction.query.filter_by(user_id=user.id).filter(Transaction.running_balance.isnot(None)).order_by(Transaction.date.desc(), Transaction.id.desc()).first()
+        if stmt_txn and stmt_txn.running_balance is not None:
+            base_bal = stmt_txn.running_balance
+            subsequent_income = sum(t.amount for t in txns if t.type == "income" and (t.date > stmt_txn.date or (t.date == stmt_txn.date and t.id > stmt_txn.id)))
+            subsequent_expense = sum(t.amount for t in txns if t.type == "expense" and (t.date > stmt_txn.date or (t.date == stmt_txn.date and t.id > stmt_txn.id)))
+            current_bal = round(base_bal + subsequent_income - subsequent_expense, 2)
+            if acc:
+                acc.current_balance = current_bal
+                db.session.commit()
+            return current_bal
+
         if acc and acc.current_balance is not None and acc.current_balance != 0:
             return acc.current_balance
 
-        stmt_txn = Transaction.query.filter_by(user_id=user.id).filter(Transaction.running_balance.isnot(None)).order_by(Transaction.date.desc(), Transaction.id.desc()).first()
-        if stmt_txn and stmt_txn.running_balance is not None:
-            return stmt_txn.running_balance
-
         all_income = sum(t.amount for t in txns if t.type == "income")
         all_expense = sum(t.amount for t in txns if t.type == "expense")
-        return all_income - all_expense
+        return round(all_income - all_expense, 2)
 
     # ---------- Dashboard ----------
     @flask_app.route("/dashboard")
