@@ -744,9 +744,53 @@ def register_routes(flask_app):
             total_income = sum(t["amount"] for t in txns if t["type"] == "income")
             total_expense = sum(t["amount"] for t in txns if t["type"] == "expense")
 
+            # Group transactions by month
+            indexed_txns = []
+            for idx, t in enumerate(txns):
+                t_copy = dict(t)
+                t_copy["global_index"] = idx
+                try:
+                    dt = datetime.strptime(t["date"], "%Y-%m-%d")
+                    month_key = dt.strftime("%B %Y")
+                    sort_key = dt.strftime("%Y-%m")
+                except ValueError:
+                    month_key = "Other Dates"
+                    sort_key = "9999-99"
+                t_copy["month_key"] = month_key
+                t_copy["sort_key"] = sort_key
+                indexed_txns.append(t_copy)
+
+            monthly_groups_dict = {}
+            for t in indexed_txns:
+                m_key = t["month_key"]
+                s_key = t["sort_key"]
+                if s_key not in monthly_groups_dict:
+                    monthly_groups_dict[s_key] = {
+                        "month_name": m_key,
+                        "transactions": [],
+                        "income": 0.0,
+                        "expense": 0.0,
+                    }
+                monthly_groups_dict[s_key]["transactions"].append(t)
+                if t["type"] == "income":
+                    monthly_groups_dict[s_key]["income"] += t["amount"]
+                else:
+                    monthly_groups_dict[s_key]["expense"] += t["amount"]
+
+            sorted_monthly_groups = [
+                {
+                    "month_name": g["month_name"],
+                    "transactions": g["transactions"],
+                    "income": round(g["income"], 2),
+                    "expense": round(g["expense"], 2),
+                }
+                for s_key, g in sorted(monthly_groups_dict.items(), reverse=True)
+            ]
+
             return render_template(
                 "confirm_statement.html",
                 transactions=txns,
+                monthly_groups=sorted_monthly_groups,
                 total_income=round(total_income, 2),
                 total_expense=round(total_expense, 2),
                 categories=CATEGORIES,

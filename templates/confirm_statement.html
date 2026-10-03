@@ -17,68 +17,86 @@
   <form method="POST" action="{{ url_for('confirm_statement') }}" id="confirmForm">
     <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
       <label style="cursor: pointer; font-size: 13.5px; font-weight: 600;">
-        <input type="checkbox" id="selectAll" checked onchange="toggleSelectAll(this)"> Select / Deselect All
+        <input type="checkbox" id="selectAll" checked onchange="toggleSelectAll(this)"> Select / Deselect All (All Months)
       </label>
       <button type="submit" class="btn btn-primary btn-sm">Import Selected Transactions</button>
     </div>
 
-    <div style="overflow-x: auto;">
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 40px;"></th>
-            <th>Date</th>
-            <th>Details / Description</th>
-            <th>Ref No / UPI</th>
-            <th style="text-align: right; color: var(--coral);">₹ Debit</th>
-            <th style="text-align: right; color: var(--emerald);">₹ Credit</th>
-            <th style="text-align: right;">Balance</th>
-            <th>Category</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for t in transactions %}
-          <tr>
-            <td>
-              <input type="checkbox" name="include_{{ loop.index0 }}" value="1" checked class="txn-check">
-              <input type="hidden" name="type_{{ loop.index0 }}" value="{{ t.type }}">
-              <input type="hidden" name="amount_{{ loop.index0 }}" value="{{ t.amount }}">
-              <input type="hidden" name="tag_{{ loop.index0 }}" value="{{ t.tag or '' }}">
-              <input type="hidden" name="running_balance_{{ loop.index0 }}" value="{{ t.running_balance or '' }}">
-            </td>
-            <td>
-              <input type="date" name="date_{{ loop.index0 }}" value="{{ t.date }}" required style="padding: 4px 8px; font-size: 13px;">
-            </td>
-            <td>
-              <input type="text" name="merchant_{{ loop.index0 }}" value="{{ t.merchant }}" style="padding: 4px 8px; font-size: 13px; width: 100%;">
-              {% if t.tag %}
-              <div style="font-size: 11px; margin-top: 2px; color: var(--emerald-deep);">#{{ t.tag }}</div>
-              {% endif %}
-            </td>
-            <td>
-              <input type="text" name="reference_{{ loop.index0 }}" value="{{ t.reference or '' }}" placeholder="-" style="padding: 4px 8px; font-size: 12.5px; width: 130px; font-family: monospace;">
-            </td>
-            <td style="text-align: right; font-weight: 600; color: var(--coral);">
-              {% if t.type == 'expense' %}₹{{ "%.2f"|format(t.amount) }}{% else %}-{% endif %}
-            </td>
-            <td style="text-align: right; font-weight: 600; color: var(--emerald);">
-              {% if t.type == 'income' %}₹{{ "%.2f"|format(t.amount) }}{% else %}-{% endif %}
-            </td>
-            <td style="text-align: right; font-size: 13px; color: var(--ink-soft);">
-              {% if t.running_balance is not none %}₹{{ "%.2f"|format(t.running_balance) }}{% else %}-{% endif %}
-            </td>
-            <td>
-              <select name="category_{{ loop.index0 }}" style="padding: 4px 8px; font-size: 13px;">
-                {% for c in categories %}
-                  <option value="{{ c }}" {% if c == t.category %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-              </select>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    {% for group in monthly_groups %}
+    <div class="card" style="margin-bottom: 20px; border: 1px solid var(--border-color, #e2e8f0); box-shadow: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color, #e2e8f0);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <label style="cursor: pointer; font-size: 13.5px; font-weight: 600;">
+            <input type="checkbox" checked onchange="toggleMonthSelect(this, 'month-group-{{ loop.index0 }}')">
+          </label>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--ink);">📅 {{ group.month_name }}</h3>
+          <span style="font-size: 12.5px; color: var(--ink-soft);">({{ group.transactions|length }} txns)</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="pill pill-income" style="font-size: 12px; padding: 4px 10px;">+ ₹{{ "%.2f"|format(group.income) }}</span>
+          <span class="pill pill-expense" style="font-size: 12px; padding: 4px 10px;">- ₹{{ "%.2f"|format(group.expense) }}</span>
+        </div>
+      </div>
+
+      <div class="month-group-{{ loop.index0 }}" style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px;"></th>
+              <th>Date</th>
+              <th>Details / Description</th>
+              <th>Ref No / UPI</th>
+              <th style="text-align: right; color: var(--coral);">₹ Debit</th>
+              <th style="text-align: right; color: var(--emerald);">₹ Credit</th>
+              <th style="text-align: right;">Balance</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in group.transactions %}
+            <tr>
+              <td>
+                <input type="checkbox" name="include_{{ t.global_index }}" value="1" checked class="txn-check month-chk-{{ loop.index0 }}">
+                <input type="hidden" name="type_{{ t.global_index }}" value="{{ t.type }}">
+                <input type="hidden" name="amount_{{ t.global_index }}" value="{{ t.amount }}">
+                <input type="hidden" name="tag_{{ t.global_index }}" value="{{ t.tag or '' }}">
+                <input type="hidden" name="running_balance_{{ t.global_index }}" value="{{ t.running_balance or '' }}">
+              </td>
+              <td>
+                <input type="date" name="date_{{ t.global_index }}" value="{{ t.date }}" required style="padding: 4px 8px; font-size: 13px;">
+              </td>
+              <td>
+                <input type="text" name="merchant_{{ t.global_index }}" value="{{ t.merchant }}" style="padding: 4px 8px; font-size: 13px; width: 100%;">
+                {% if t.tag %}
+                <div style="font-size: 11px; margin-top: 2px; color: var(--emerald-deep);">#{{ t.tag }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <input type="text" name="reference_{{ t.global_index }}" value="{{ t.reference or '' }}" placeholder="-" style="padding: 4px 8px; font-size: 12.5px; width: 130px; font-family: monospace;">
+              </td>
+              <td style="text-align: right; font-weight: 600; color: var(--coral);">
+                {% if t.type == 'expense' %}₹{{ "%.2f"|format(t.amount) }}{% else %}-{% endif %}
+              </td>
+              <td style="text-align: right; font-weight: 600; color: var(--emerald);">
+                {% if t.type == 'income' %}₹{{ "%.2f"|format(t.amount) }}{% else %}-{% endif %}
+              </td>
+              <td style="text-align: right; font-size: 13px; color: var(--ink-soft);">
+                {% if t.running_balance is not none %}₹{{ "%.2f"|format(t.running_balance) }}{% else %}-{% endif %}
+              </td>
+              <td>
+                <select name="category_{{ t.global_index }}" style="padding: 4px 8px; font-size: 13px;">
+                  {% for c in categories %}
+                    <option value="{{ c }}" {% if c == t.category %}selected{% endif %}>{{ c }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    {% endfor %}
 
     <input type="hidden" name="total_count" value="{{ transactions|length }}">
     <div style="margin-top: 18px; text-align: right;">
@@ -93,6 +111,9 @@
 <script>
 function toggleSelectAll(master) {
   document.querySelectorAll('.txn-check').forEach(cb => cb.checked = master.checked);
+}
+function toggleMonthSelect(master, groupClass) {
+  document.querySelectorAll('.' + groupClass + ' .txn-check').forEach(cb => cb.checked = master.checked);
 }
 </script>
 {% endblock %}
