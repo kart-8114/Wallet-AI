@@ -599,8 +599,24 @@ def register_routes(flask_app):
     @login_required
     def transactions():
         user = current_user()
-        txns = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
-        return render_template("transactions.html", txns=txns)
+        all_txns = Transaction.query.filter_by(user_id=user.id).order_by(Transaction.date.desc()).all()
+        
+        months_dict = {}
+        for t in all_txns:
+            if t.date:
+                m_key = t.date.strftime("%Y-%m")
+                m_label = t.date.strftime("%B %Y")
+                if m_key not in months_dict:
+                    months_dict[m_key] = m_label
+
+        available_months = [{"key": k, "label": v} for k, v in sorted(months_dict.items(), reverse=True)]
+        selected_month = request.args.get("month", "all").strip()
+
+        filtered_txns = all_txns
+        if selected_month and selected_month != "all":
+            filtered_txns = [t for t in all_txns if t.date and t.date.strftime("%Y-%m") == selected_month]
+
+        return render_template("transactions.html", txns=filtered_txns, available_months=available_months, selected_month=selected_month)
 
     @flask_app.route("/add-expense", methods=["GET", "POST"])
     @login_required

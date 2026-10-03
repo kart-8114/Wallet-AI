@@ -5,7 +5,7 @@
 <div class="section-head" style="margin-top:0;">
   <h2>All transactions</h2>
   <div style="display: flex; gap: 8px; align-items: center;">
-    {% if txns %}
+    {% if available_months or txns %}
     <form method="POST" action="{{ url_for('clear_statement_imports') }}" onsubmit="return confirm('Purge all statement-imported transactions? Your manual entries will not be deleted.');" style="display:inline-block;">
       <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--coral);">Purge Statement Imports</button>
     </form>
@@ -17,6 +17,26 @@
     <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-sm">+ Add expense</a>
   </div>
 </div>
+
+<!-- Month Selector Bar -->
+<div class="card" style="margin-bottom: 20px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color, #334155);">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 20px;">📅</span>
+    <div>
+      <label for="monthFilter" style="font-weight: 700; font-size: 14.5px; color: var(--ink);">Select Month</label>
+      <div style="font-size: 12.5px; color: var(--ink-soft);">Choose a month to view its transactions only</div>
+    </div>
+  </div>
+  <form method="GET" action="{{ url_for('transactions') }}" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+    <select name="month" id="monthFilter" onchange="this.form.submit()" style="padding: 8px 14px; font-size: 14px; border-radius: 8px; background: var(--bg); color: var(--ink); border: 1px solid var(--border-color, #475569); min-width: 200px;">
+      <option value="all" {% if selected_month == 'all' %}selected{% endif %}>🌐 All Months</option>
+      {% for m in available_months %}
+        <option value="{{ m.key }}" {% if selected_month == m.key %}selected{% endif %}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
 <div class="card">
   {% if txns %}
   <div style="overflow-x: auto;">
@@ -68,7 +88,7 @@
   {% else %}
   <div class="empty-state">
     <span class="big-num">≡</span>
-    No transactions yet. <a href="{{ url_for('add_expense') }}" style="color:var(--emerald); font-weight:600;">Add one</a> or <a href="{{ url_for('scan_receipt') }}" style="color:var(--emerald); font-weight:600;">scan a receipt</a>.
+    No transactions found for the selected month. <a href="{{ url_for('transactions', month='all') }}" style="color:var(--emerald); font-weight:600;">View all months</a>.
   </div>
   {% endif %}
 </div>
