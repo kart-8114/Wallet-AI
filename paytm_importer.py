@@ -9,7 +9,7 @@ Uses PyMuPDF (fitz) to extract and parse Paytm UPI PDF statements:
 """
 import re
 from datetime import datetime, date
-import fitz  # PyMuPDF
+import pymupdf as fitz
 
 
 CATEGORY_MAP = {

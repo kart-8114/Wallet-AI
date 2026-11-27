@@ -137,7 +137,7 @@ def admin_required(view):
 
 def current_user():
     uid = session.get("user_id")
-    return User.query.get(uid) if uid else None
+    return db.session.get(User, uid) if uid else None
 
 
 def register_routes(flask_app):
@@ -209,7 +209,7 @@ def register_routes(flask_app):
         uid = session.get("pending_otp_user")
         if not uid:
             return redirect(url_for("login"))
-        user = User.query.get(uid)
+        user = db.session.get(User, uid)
         if request.method == "POST":
             code = request.form.get("otp", "").strip()
             if code == user.otp_code:
